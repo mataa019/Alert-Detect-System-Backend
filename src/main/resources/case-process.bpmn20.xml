@@ -1,0 +1,41 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<definitions xmlns="http://www.omg.org/spec/BPMN/20100524/MODEL"
+             xmlns:flowable="http://flowable.org/bpmn"
+             targetNamespace="http://flowable.org/test">
+
+  <process id="caseInvestigationProcess" name="Case Investigation Process" isExecutable="true">
+  
+    <startEvent id="startEvent" name="Case Created"/>
+    
+    <exclusiveGateway id="approvalGateway" name="Requires Approval?"/>
+    
+    <!-- Approval Path -->
+    <userTask id="approveCase" name="Approve Case Creation" 
+              flowable:candidateGroups="supervisors">
+      <documentation>Review and approve case creation</documentation>
+    </userTask>
+    
+    <!-- Direct Investigation Path -->
+    <userTask id="investigateCase" name="Investigate Case" 
+              flowable:assignee="${createdBy}">
+      <documentation>Begin case investigation</documentation>
+    </userTask>
+    
+    <endEvent id="endEvent" name="Process Complete"/>
+    
+    <!-- Flow -->
+    <sequenceFlow id="flow1" sourceRef="startEvent" targetRef="approvalGateway"/>
+    
+    <sequenceFlow id="approvalFlow" sourceRef="approvalGateway" targetRef="approveCase">
+      <conditionExpression>${requiresApproval == true}</conditionExpression>
+    </sequenceFlow>
+    
+    <sequenceFlow id="directFlow" sourceRef="approvalGateway" targetRef="investigateCase">
+      <conditionExpression>${requiresApproval == false}</conditionExpression>
+    </sequenceFlow>
+    
+    <sequenceFlow id="flow4" sourceRef="approveCase" targetRef="investigateCase"/>
+    <sequenceFlow id="flow5" sourceRef="investigateCase" targetRef="endEvent"/>
+    
+  </process>
+</definitions>
