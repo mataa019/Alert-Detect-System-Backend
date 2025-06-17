@@ -20,13 +20,13 @@ import com.example.alert_detect_system.Model.TaskModel;
 import com.example.alert_detect_system.service.TaskService;
 
 @RestController
-@RequestMapping("/api/tasks")
+@RequestMapping("/tasks")
 public class TaskController {
     
     @Autowired
     private TaskService taskService;
     
-    @GetMapping("/my/{assignee}")
+    @GetMapping("/getTask/{assignee}")
     public ResponseEntity<List<Task>> getMyTasks(@PathVariable String assignee) {
         List<Task> tasks = taskService.getMyTasks(assignee);
         return ResponseEntity.ok(tasks);
