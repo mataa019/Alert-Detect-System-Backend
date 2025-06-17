@@ -3,6 +3,7 @@ package com.example.alert_detect_system.controller;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.UUID;
 
 import org.flowable.task.api.Task;
 import org.springframework.beans.factory.annotation.Autowired;
@@ -15,6 +16,7 @@ import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
+import com.example.alert_detect_system.Model.TaskModel;
 import com.example.alert_detect_system.service.TaskService;
 
 @RestController
@@ -24,21 +26,18 @@ public class TaskController {
     @Autowired
     private TaskService taskService;
     
-    // Get my assigned tasks
     @GetMapping("/my/{assignee}")
     public ResponseEntity<List<Task>> getMyTasks(@PathVariable String assignee) {
         List<Task> tasks = taskService.getMyTasks(assignee);
         return ResponseEntity.ok(tasks);
     }
     
-    // Get group tasks (work queue)
     @GetMapping("/group/{groupId}")
     public ResponseEntity<List<Task>> getGroupTasks(@PathVariable String groupId) {
         List<Task> tasks = taskService.getGroupTasks(groupId);
         return ResponseEntity.ok(tasks);
     }
     
-    // Get specific task
     @GetMapping("/{taskId}")
     public ResponseEntity<Task> getTaskById(@PathVariable String taskId) {
         Task task = taskService.getTaskById(taskId);
@@ -48,7 +47,6 @@ public class TaskController {
         return ResponseEntity.notFound().build();
     }
     
-    // Assign/claim task
     @PostMapping("/{taskId}/assign")
     public ResponseEntity<String> assignTask(@PathVariable String taskId, 
                                            @RequestParam String assignee) {
@@ -60,7 +58,6 @@ public class TaskController {
         }
     }
     
-    // Complete task
     @PostMapping("/{taskId}/complete")
     public ResponseEntity<String> completeTask(@PathVariable String taskId, 
                                              @RequestBody(required = false) Map<String, Object> variables) {
@@ -72,6 +69,22 @@ public class TaskController {
             return ResponseEntity.ok("Task completed successfully");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+    
+    @GetMapping("/case/{caseId}")
+    public ResponseEntity<List<TaskModel>> getTasksByCaseId(@PathVariable UUID caseId) {
+        List<TaskModel> tasks = taskService.getTasksByCaseId(caseId);
+        return ResponseEntity.ok(tasks);
+    }
+    
+    @PostMapping("/create")
+    public ResponseEntity<TaskModel> createTask(@RequestBody TaskModel task) {
+        try {
+            TaskModel savedTask = taskService.saveTask(task);
+            return ResponseEntity.ok(savedTask);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(null);
         }
     }
 }
