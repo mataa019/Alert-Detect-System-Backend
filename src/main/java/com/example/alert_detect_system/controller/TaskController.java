@@ -26,43 +26,48 @@ public class TaskController {
     @Autowired
     private TaskService taskService;
     
-    @GetMapping("/getTask/{assignee}")
+    // Get my tasks
+    @GetMapping("/my/{assignee}")
     public ResponseEntity<List<Task>> getMyTasks(@PathVariable String assignee) {
-        List<Task> tasks = taskService.getMyTasks(assignee);
-        return ResponseEntity.ok(tasks);
+        return ResponseEntity.ok(taskService.getMyTasks(assignee));
     }
     
+    // Get group tasks
     @GetMapping("/group/{groupId}")
     public ResponseEntity<List<Task>> getGroupTasks(@PathVariable String groupId) {
-        List<Task> tasks = taskService.getGroupTasks(groupId);
-        return ResponseEntity.ok(tasks);
+        return ResponseEntity.ok(taskService.getGroupTasks(groupId));
     }
     
+    // Get specific task
     @GetMapping("/{taskId}")
     public ResponseEntity<Task> getTaskById(@PathVariable String taskId) {
         Task task = taskService.getTaskById(taskId);
-        if (task != null) {
-            return ResponseEntity.ok(task);
-        }
-        return ResponseEntity.notFound().build();
+        return task != null ? ResponseEntity.ok(task) : ResponseEntity.notFound().build();
     }
     
+    // Get tasks by case
+    @GetMapping("/case/{caseId}")
+    public ResponseEntity<List<TaskModel>> getTasksByCaseId(@PathVariable UUID caseId) {
+        return ResponseEntity.ok(taskService.getTasksByCaseId(caseId));
+    }
+    
+    // Assign task (JSON only)
     @PostMapping("/assign")
     public ResponseEntity<String> assignTask(@RequestBody TaskAssignDto assignDto) {
         try {
             taskService.assignTask(assignDto.getTaskId(), assignDto.getAssignee());
-            return ResponseEntity.ok("Task assigned successfully with comment: " + assignDto.getComment());
+            return ResponseEntity.ok("Task assigned successfully");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
     
+    // Complete task (JSON only)
     @PostMapping("/complete")
     public ResponseEntity<String> completeTask(@RequestBody Map<String, Object> request) {
         try {
             String taskId = (String) request.get("taskId");
             Map<String, Object> variables = (Map<String, Object>) request.getOrDefault("variables", new HashMap<>());
-            
             taskService.completeTask(taskId, variables);
             return ResponseEntity.ok("Task completed successfully");
         } catch (Exception e) {
@@ -70,17 +75,11 @@ public class TaskController {
         }
     }
     
-    @GetMapping("/case/{caseId}")
-    public ResponseEntity<List<TaskModel>> getTasksByCaseId(@PathVariable UUID caseId) {
-        List<TaskModel> tasks = taskService.getTasksByCaseId(caseId);
-        return ResponseEntity.ok(tasks);
-    }
-    
+    // Create task record
     @PostMapping("/create")
     public ResponseEntity<TaskModel> createTask(@RequestBody TaskModel task) {
         try {
-            TaskModel savedTask = taskService.saveTask(task);
-            return ResponseEntity.ok(savedTask);
+            return ResponseEntity.ok(taskService.saveTask(task));
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(null);
         }
