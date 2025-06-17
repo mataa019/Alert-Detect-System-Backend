@@ -18,10 +18,10 @@ public interface TaskRepository extends JpaRepository<TaskService, UUID> {
     List<TaskService> findByAssignee(String assignee);
     
     // Find tasks by candidate group
-    List<Task> findByCandidateGroup(String candidateGroup);
+    List<TaskService> findByCandidateGroup(String candidateGroup);
     
     // Find tasks by case ID
-    List<Task> findByCaseId(UUID caseId);
+    List<TaskService> findByCaseId(UUID caseId);
     
     // Find tasks by status
     List<Task> findByStatus(String status);
