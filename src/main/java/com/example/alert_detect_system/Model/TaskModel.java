@@ -49,6 +49,8 @@ public class TaskModel {
     private String taskDefinitionKey;
     
     private String description;
-    
-   
+
+
+    public TaskModel(UUID caseId, String taskName, String candidateGroup) {
+    }
 }
