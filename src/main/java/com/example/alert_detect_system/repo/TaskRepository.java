@@ -24,14 +24,14 @@ public interface TaskRepository extends JpaRepository<TaskService, UUID> {
     List<TaskService> findByCaseId(UUID caseId);
     
     // Find tasks by status
-    List<Task> findByStatus(String status);
+    List<TaskService> findByStatus(String status);
     
     // Find active tasks (not completed)
     @Query("SELECT t FROM Task t WHERE t.status != 'COMPLETED'")
-    List<Task> findActiveTasks();
+    List<TaskService> findActiveTasks();
     
     // Find tasks by process instance ID
-    List<Task> findByProcessInstanceId(String processInstanceId);
+    List<TaskService> findByProcessInstanceId(String processInstanceId);
     
     // Count tasks by assignee
     long countByAssignee(String assignee);
