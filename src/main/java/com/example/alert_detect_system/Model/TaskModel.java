@@ -36,6 +36,14 @@ public class TaskModel {
     
     private String candidateGroup;
 
+    public UUID getCaseId() {
+        return caseId;
+    }
+
+    public void setCaseId(UUID caseId) {
+        this.caseId = caseId;
+    }
+
     public String getTaskName() {
         return taskName;
     }
