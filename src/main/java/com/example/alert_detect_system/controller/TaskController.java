@@ -44,44 +44,57 @@ public class TaskController {
         Task task = taskService.getTaskById(taskId);
         return task != null ? ResponseEntity.ok(task) : ResponseEntity.notFound().build();
     }
-    
-    // Get tasks by case
-    @GetMapping("/case/{caseId}")
+      // Get tasks by case
+    @GetMapping("/by-case/{caseId}")
     public ResponseEntity<List<TaskModel>> getTasksByCaseId(@PathVariable UUID caseId) {
         return ResponseEntity.ok(taskService.getTasksByCaseId(caseId));
     }
-    
-    // Assign task (JSON only)
+      // Assign task (JSON only)
     @PostMapping("/assign")
     public ResponseEntity<String> assignTask(@RequestBody TaskAssignDto assignDto) {
         try {
+            if (assignDto.getTaskId() == null || assignDto.getAssignee() == null) {
+                return ResponseEntity.badRequest().body("TaskId and assignee are required");
+            }
             taskService.assignTask(assignDto.getTaskId(), assignDto.getAssignee());
             return ResponseEntity.ok("Task assigned successfully");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
-    
-    // Complete task (JSON only)
+      // Complete task (JSON only)
     @PostMapping("/complete")
     public ResponseEntity<String> completeTask(@RequestBody Map<String, Object> request) {
         try {
             String taskId = (String) request.get("taskId");
-            Map<String, Object> variables = (Map<String, Object>) request.getOrDefault("variables", new HashMap<>());
+            if (taskId == null || taskId.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("TaskId is required");
+            }
+              Object variablesObj = request.get("variables");
+            Map<String, Object> variables = new HashMap<>();
+            if (variablesObj instanceof Map) {
+                @SuppressWarnings("unchecked")
+                Map<String, Object> tempMap = (Map<String, Object>) variablesObj;
+                variables = tempMap;
+            }
+            
             taskService.completeTask(taskId, variables);
             return ResponseEntity.ok("Task completed successfully");
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
-    
-    // Create task record
+      // Create task record
     @PostMapping("/create")
-    public ResponseEntity<TaskModel> createTask(@RequestBody TaskModel task) {
+    public ResponseEntity<?> createTask(@RequestBody TaskModel task) {
         try {
-            return ResponseEntity.ok(taskService.saveTask(task));
+            if (task.getCaseId() == null || task.getTaskName() == null) {
+                return ResponseEntity.badRequest().body("CaseId and taskName are required");
+            }
+            TaskModel savedTask = taskService.saveTask(task);
+            return ResponseEntity.ok(savedTask);
         } catch (Exception e) {
-            return ResponseEntity.badRequest().body(null);
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
 }
