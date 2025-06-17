@@ -1,18 +1,17 @@
 package com.example.alert_detect_system.service;
 
-import org.flowable.engine.TaskService as FlowableTaskService;
+import java.util.List;
+import java.util.Map;
+
 import org.flowable.task.api.Task;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
-
-import java.util.List;
-import java.util.Map;
 
 @Service
 public class TaskService {
     
     @Autowired
-    private FlowableTaskService flowableTaskService;
+    private org.flowable.engine.TaskService flowableTaskService; // ✅ Fixed import
     
     // Get my tasks
     public List<Task> getMyTasks(String assignee) {
