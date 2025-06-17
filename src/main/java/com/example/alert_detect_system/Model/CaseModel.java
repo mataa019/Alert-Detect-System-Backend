@@ -46,6 +46,14 @@ public class CaseModel {
     private LocalDateTime createdAt;
     
     private LocalDateTime updatedAt;
+      private String processInstanceId;
     
-    private String processInstanceId;
+    // Manual setter for caseNumber (in case Lombok isn't working)
+    public void setCaseNumber(String caseNumber) {
+        this.caseNumber = caseNumber;
+    }
+    
+    public String getCaseNumber() {
+        return caseNumber;
+    }
 }
