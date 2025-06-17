@@ -6,6 +6,7 @@ import java.util.UUID;
 
 import org.flowable.task.api.Task;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import com.example.alert_detect_system.Model.TaskModel;
@@ -15,6 +16,7 @@ import com.example.alert_detect_system.repo.TaskRepository;
 public class TaskService {
     
     @Autowired
+    @Qualifier("flowableTaskService")
     private org.flowable.engine.TaskService flowableTaskService;
     
     @Autowired

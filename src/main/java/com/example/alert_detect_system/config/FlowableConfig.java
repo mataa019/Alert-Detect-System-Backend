@@ -14,9 +14,8 @@ public class FlowableConfig {
     public RuntimeService runtimeService(ProcessEngine processEngine) {
         return processEngine.getRuntimeService();
     }
-    
-    @Bean
-    public TaskService taskService(ProcessEngine processEngine) {
+      @Bean("flowableTaskService")
+    public TaskService flowableTaskService(ProcessEngine processEngine) {
         return processEngine.getTaskService();
     }
     
