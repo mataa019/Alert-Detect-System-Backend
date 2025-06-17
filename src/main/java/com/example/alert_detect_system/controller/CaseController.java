@@ -13,6 +13,7 @@ import java.util.List;
 import java.util.UUID;
 
 import com.example.alert_detect_system.Model.CaseModel;
+import com.example.alert_detect_system.Model.CaseStatus;
 
 @RestController
 @RequestMapping("/api/cases")
