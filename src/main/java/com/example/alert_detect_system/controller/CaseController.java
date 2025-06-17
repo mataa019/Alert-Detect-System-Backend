@@ -1,20 +1,24 @@
 package com.example.alert_detect_system.controller;
 
-import com.example.alert_detect_system.dto.CaseRequestDto;
-
-import com.example.alert_detect_system.service.CaseService;
-
-import org.apache.el.stream.Optional;
-import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.http.HttpStatus;
-import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.*;
-
 import java.util.List;
 import java.util.UUID;
 
+import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.HttpStatus;
+import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
+import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
+import org.springframework.web.bind.annotation.RequestBody;
+import org.springframework.web.bind.annotation.RequestMapping;
+import org.springframework.web.bind.annotation.RequestParam;
+import org.springframework.web.bind.annotation.RestController;
+
 import com.example.alert_detect_system.Model.CaseModel;
 import com.example.alert_detect_system.Model.CaseStatus;
+import com.example.alert_detect_system.dto.CaseRequestDto;
+import com.example.alert_detect_system.service.CaseService;
 
 @RestController
 @RequestMapping("/api/cases")
@@ -42,16 +46,12 @@ public class CaseController {
     }
     
     // Get case by ID
-       @GetMapping("/{caseId}")
+    @GetMapping("/{caseId}")
     public ResponseEntity<?> getCaseById(@PathVariable UUID caseId) {
         try {
-            Optional<CaseModel> caseOpt = caseService.getCaseById(caseId);
-            
-            if (caseOpt.isPresent()) {
-                return ResponseEntity.ok(caseOpt.get());
-            } else {
-                return ResponseEntity.notFound().build();
-            }
+            return caseService.getCaseById(caseId)
+                .map(caseEntity -> ResponseEntity.ok(caseEntity))
+                .orElse(ResponseEntity.notFound().build());
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
