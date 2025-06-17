@@ -4,6 +4,7 @@ import com.example.alert_detect_system.dto.CaseRequestDto;
 
 import com.example.alert_detect_system.service.CaseService;
 
+import org.apache.el.stream.Optional;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
@@ -41,13 +42,18 @@ public class CaseController {
     }
     
     // Get case by ID
-    @GetMapping("/{caseId}")
+       @GetMapping("/{caseId}")
     public ResponseEntity<?> getCaseById(@PathVariable UUID caseId) {
         try {
-            CaseModel caseEntity = caseService.getCaseById(caseId);
-            return ResponseEntity.ok(caseEntity);
+            Optional<CaseModel> caseOpt = caseService.getCaseById(caseId);
+            
+            if (caseOpt.isPresent()) {
+                return ResponseEntity.ok(caseOpt.get());
+            } else {
+                return ResponseEntity.notFound().build();
+            }
         } catch (Exception e) {
-            return ResponseEntity.notFound().build();
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
     
