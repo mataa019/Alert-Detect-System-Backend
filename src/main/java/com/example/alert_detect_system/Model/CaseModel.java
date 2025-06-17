@@ -8,16 +8,9 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
+
 @Entity
 @Table(name = "cases")
-@AllArgsConstructor
-@Getter
-@Setter
-@NoArgsConstructor
 public class CaseModel {
     @Id
     @GeneratedValue(strategy = GenerationType.UUID)
@@ -45,15 +38,54 @@ public class CaseModel {
     
     private LocalDateTime createdAt;
     
-    private LocalDateTime updatedAt;
-      private String processInstanceId;
+    private LocalDateTime updatedAt;    private String processInstanceId;
     
-    // Manual setter for caseNumber (in case Lombok isn't working)
-    public void setCaseNumber(String caseNumber) {
-        this.caseNumber = caseNumber;
+    // Constructors
+    public CaseModel() {
+        this.createdAt = LocalDateTime.now();
+        this.status = CaseStatus.DRAFT;
     }
     
-    public String getCaseNumber() {
-        return caseNumber;
-    }
+    // Getters and Setters
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+    
+    public String getCaseNumber() { return caseNumber; }
+    public void setCaseNumber(String caseNumber) { this.caseNumber = caseNumber; }
+    
+    public String getCaseType() { return caseType; }
+    public void setCaseType(String caseType) { this.caseType = caseType; }
+    
+    public String getPriority() { return priority; }
+    public void setPriority(String priority) { this.priority = priority; }
+    
+    public String getEntity() { return entity; }
+    public void setEntity(String entity) { this.entity = entity; }
+    
+    public String getAlertId() { return alertId; }
+    public void setAlertId(String alertId) { this.alertId = alertId; }
+    
+    public CaseStatus getStatus() { return status; }
+    public void setStatus(CaseStatus status) { this.status = status; }
+    
+    public String getDescription() { return description; }
+    public void setDescription(String description) { this.description = description; }
+    
+    public Double getRiskScore() { return riskScore; }
+    public void setRiskScore(Double riskScore) { this.riskScore = riskScore; }
+    
+    public String getTypology() { return typology; }
+    public void setTypology(String typology) { this.typology = typology; }
+    
+    public String getCreatedBy() { return createdBy; }
+    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+    
+    public LocalDateTime getCreatedAt() { return createdAt; }
+    public void setCreatedAt(LocalDateTime createdAt) { this.createdAt = createdAt; }
+    
+    public LocalDateTime getUpdatedAt() { return updatedAt; }
+    public void setUpdatedAt(LocalDateTime updatedAt) { this.updatedAt = updatedAt; }
+    
+    public String getProcessInstanceId() { return processInstanceId; }
+    public void setProcessInstanceId(String processInstanceId) { this.processInstanceId = processInstanceId; }
 }
