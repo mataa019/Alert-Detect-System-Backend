@@ -13,10 +13,10 @@ import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
-import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 import com.example.alert_detect_system.Model.TaskModel;
+import com.example.alert_detect_system.dto.TaskAssignDto;
 import com.example.alert_detect_system.service.TaskService;
 
 @RestController
@@ -47,24 +47,22 @@ public class TaskController {
         return ResponseEntity.notFound().build();
     }
     
-    @PostMapping("/{taskId}/assign")
-    public ResponseEntity<String> assignTask(@PathVariable String taskId, 
-                                           @RequestParam String assignee) {
+    @PostMapping("/assign")
+    public ResponseEntity<String> assignTask(@RequestBody TaskAssignDto assignDto) {
         try {
-            taskService.assignTask(taskId, assignee);
-            return ResponseEntity.ok("Task assigned successfully");
+            taskService.assignTask(assignDto.getTaskId(), assignDto.getAssignee());
+            return ResponseEntity.ok("Task assigned successfully with comment: " + assignDto.getComment());
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
     
-    @PostMapping("/{taskId}/complete")
-    public ResponseEntity<String> completeTask(@PathVariable String taskId, 
-                                             @RequestBody(required = false) Map<String, Object> variables) {
+    @PostMapping("/complete")
+    public ResponseEntity<String> completeTask(@RequestBody Map<String, Object> request) {
         try {
-            if (variables == null) {
-                variables = new HashMap<>();
-            }
+            String taskId = (String) request.get("taskId");
+            Map<String, Object> variables = (Map<String, Object>) request.getOrDefault("variables", new HashMap<>());
+            
             taskService.completeTask(taskId, variables);
             return ResponseEntity.ok("Task completed successfully");
         } catch (Exception e) {
