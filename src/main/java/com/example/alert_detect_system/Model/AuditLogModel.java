@@ -1,19 +1,16 @@
 package com.example.alert_detect_system.Model;
 
-import jakarta.persistence.*;
-import lombok.AllArgsConstructor;
-import lombok.Getter;
-import lombok.NoArgsConstructor;
-import lombok.Setter;
-
 import java.time.LocalDateTime;
 import java.util.UUID;
 
+import jakarta.persistence.Column;
+import jakarta.persistence.Entity;
+import jakarta.persistence.GeneratedValue;
+import jakarta.persistence.GenerationType;
+import jakarta.persistence.Id;
+import jakarta.persistence.Table;
+
 @Entity
-@Getter
-@AllArgsConstructor
-@Setter
-@NoArgsConstructor
 @Table(name = "Audit_log")
 public class AuditLogModel {
    
@@ -39,7 +36,41 @@ public class AuditLogModel {
     private String oldValue;
     private String newValue;
 
- public AuditLogModel(UUID caseId2, String action2, String performedBy2, String details2) {
-        //TODO Auto-generated constructor stub
+    // Constructors
+    public AuditLogModel() {
+        this.timestamp = LocalDateTime.now();
     }
+
+    public AuditLogModel(UUID caseId, String action, String performedBy, String details) {
+        this();
+        this.caseId = caseId;
+        this.action = action;
+        this.performedBy = performedBy;
+        this.details = details;
+    }
+
+    // Getters and Setters
+    public UUID getId() { return id; }
+    public void setId(UUID id) { this.id = id; }
+
+    public UUID getCaseId() { return caseId; }
+    public void setCaseId(UUID caseId) { this.caseId = caseId; }
+
+    public String getAction() { return action; }
+    public void setAction(String action) { this.action = action; }
+
+    public String getPerformedBy() { return performedBy; }
+    public void setPerformedBy(String performedBy) { this.performedBy = performedBy; }
+
+    public String getDetails() { return details; }
+    public void setDetails(String details) { this.details = details; }
+
+    public LocalDateTime getTimestamp() { return timestamp; }
+    public void setTimestamp(LocalDateTime timestamp) { this.timestamp = timestamp; }
+
+    public String getOldValue() { return oldValue; }
+    public void setOldValue(String oldValue) { this.oldValue = oldValue; }
+
+    public String getNewValue() { return newValue; }
+    public void setNewValue(String newValue) { this.newValue = newValue; }
 }
