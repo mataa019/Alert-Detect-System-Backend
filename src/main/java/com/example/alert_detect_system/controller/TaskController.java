@@ -20,7 +20,7 @@ import com.example.alert_detect_system.dto.TaskAssignDto;
 import com.example.alert_detect_system.service.TaskService;
 
 @RestController
-@RequestMapping("/tasks")
+@RequestMapping("/api/tasks")
 public class TaskController {
     
     @Autowired

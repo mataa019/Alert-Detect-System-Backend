@@ -6,7 +6,6 @@ import java.util.UUID;
 
 import org.flowable.task.api.Task;
 import org.springframework.beans.factory.annotation.Autowired;
-import org.springframework.beans.factory.annotation.Qualifier;
 import org.springframework.stereotype.Service;
 
 import com.example.alert_detect_system.Model.TaskModel;
@@ -14,41 +13,34 @@ import com.example.alert_detect_system.repo.TaskRepository;
 
 @Service
 public class TaskService {
-    
     @Autowired
-    @Qualifier("flowableTaskService")
-    private org.flowable.engine.TaskService flowableTaskService;
+    private org.flowable.engine.TaskService taskService;
     
     @Autowired
     private TaskRepository taskRepository;
-    
-    // Get my tasks from Flowable
+      // Get my tasks from Flowable
     public List<Task> getMyTasks(String assignee) {
-        return flowableTaskService.createTaskQuery()
+        return taskService.createTaskQuery()
                 .taskAssignee(assignee)
                 .list();
     }
-    
-    // Get group tasks from Flowable
+      // Get group tasks from Flowable
     public List<Task> getGroupTasks(String groupId) {
-        return flowableTaskService.createTaskQuery()
+        return taskService.createTaskQuery()
                 .taskCandidateGroup(groupId)
                 .list();
     }
-    
-    // Assign task to user
+      // Assign task to user
     public void assignTask(String taskId, String assignee) {
-        flowableTaskService.setAssignee(taskId, assignee);
+        taskService.setAssignee(taskId, assignee);
     }
-    
-    // Complete task
+      // Complete task
     public void completeTask(String taskId, Map<String, Object> variables) {
-        flowableTaskService.complete(taskId, variables);
+        taskService.complete(taskId, variables);
     }
-    
-    // Get task by ID from Flowable
+      // Get task by ID from Flowable
     public Task getTaskById(String taskId) {
-        return flowableTaskService.createTaskQuery()
+        return taskService.createTaskQuery()
                 .taskId(taskId)
                 .singleResult();
     }

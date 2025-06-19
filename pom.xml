@@ -48,10 +48,23 @@
             <artifactId>spring-boot-starter-web</artifactId>
         </dependency>
          <!-- Flowable BPMN Engine -->
+        <!-- https://mvnrepository.com/artifact/org.flowable/flowable-engine -->
         <dependency>
             <groupId>org.flowable</groupId>
-            <artifactId>flowable-spring-boot-starter</artifactId>
-            <version>6.8.0</version>
+            <artifactId>flowable-engine</artifactId>
+            <version>7.0.1</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.flowable/flowable-spring-boot-starter-process -->
+        <dependency>
+            <groupId>org.flowable</groupId>
+            <artifactId>flowable-spring-boot-starter-process</artifactId>
+            <version>7.0.1</version>
+        </dependency>
+        <!-- https://mvnrepository.com/artifact/org.flowable/flowable-engine-common -->
+        <dependency>
+            <groupId>org.flowable</groupId>
+            <artifactId>flowable-engine-common</artifactId>
+            <version>7.0.1</version>
         </dependency>
           <!-- Validation -->
         <dependency>
@@ -66,6 +79,12 @@
         <dependency>
             <groupId>org.postgresql</groupId>
             <artifactId>postgresql</artifactId>
+            <scope>runtime</scope>
+        </dependency>
+        <!-- H2 Database for testing -->
+        <dependency>
+            <groupId>com.h2database</groupId>
+            <artifactId>h2</artifactId>
             <scope>runtime</scope>
         </dependency>
         <dependency>

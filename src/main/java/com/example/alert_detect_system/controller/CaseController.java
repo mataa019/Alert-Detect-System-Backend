@@ -19,7 +19,7 @@ import com.example.alert_detect_system.dto.CaseRequestDto;
 import com.example.alert_detect_system.service.CaseService;
 
 @RestController
-@RequestMapping("/cases")
+@RequestMapping("/api/cases")
 public class CaseController {
     
     @Autowired
