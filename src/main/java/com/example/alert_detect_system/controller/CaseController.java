@@ -6,6 +6,7 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.flowable.engine.RepositoryService;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -29,6 +30,9 @@ public class CaseController {
     
     @Autowired
     private CaseService caseService;
+    
+    @Autowired
+    private RepositoryService repositoryService;
     
     @PostMapping("/create")
     public ResponseEntity<CaseModel> createCase(@RequestBody CaseRequestDto caseRequest) {
@@ -86,6 +90,27 @@ public class CaseController {
         response.put("message", "Backend connection successful!");
         response.put("timestamp", java.time.LocalDateTime.now().toString());
         return ResponseEntity.ok(response);
+    }
+    
+    // Test endpoint to check if Flowable process is deployed
+    @GetMapping("/flowable-test")
+    public ResponseEntity<Map<String, Object>> testFlowableProcessDeployment() {
+        Map<String, Object> result = new HashMap<>();
+        
+        try {
+            long count = repositoryService.createProcessDefinitionQuery()
+                    .processDefinitionKey("caseInvestigationProcess")
+                    .count();
+            
+            result.put("processDeployed", count > 0);
+            result.put("processCount", count);
+            result.put("message", count > 0 ? "Process is deployed successfully" : "Process not found");
+            
+            return ResponseEntity.ok(result);
+        } catch (Exception e) {
+            result.put("error", e.getMessage());
+            return ResponseEntity.internalServerError().body(result);
+        }
     }
     
     public static class StatusRequest {
