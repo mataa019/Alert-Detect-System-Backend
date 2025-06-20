@@ -9,16 +9,12 @@ import jakarta.persistence.GeneratedValue;
 import jakarta.persistence.GenerationType;
 import jakarta.persistence.Id;
 import jakarta.persistence.Table;
-import lombok.AllArgsConstructor;
 import lombok.Getter;
-import lombok.NoArgsConstructor;
 import lombok.Setter;
 
 @Entity
 @Getter
 @Setter
-@NoArgsConstructor
-@AllArgsConstructor
 @Table(name = "tasks")
 public class TaskModel {
     
@@ -129,8 +125,59 @@ public class TaskModel {
     private String taskDefinitionKey;
     
     private String description;
-
-
+      // Additional fields for User Stories
+    private String title;
+    
+    private String priority;
+    
+    private String completedBy;
+    
+    private LocalDateTime completedAt;
+    
+    // Constructors
+    public TaskModel() {
+        this.createdAt = LocalDateTime.now();
+        this.status = "OPEN";
+    }
+    
+    // Constructor for backwards compatibility
     public TaskModel(UUID caseId, String taskName, String candidateGroup) {
+        this();
+        this.caseId = caseId;
+        this.taskName = taskName;
+        this.candidateGroup = candidateGroup;
+    }
+    
+    // Additional getters and setters for new fields
+    public String getTitle() {
+        return title;
+    }
+    
+    public void setTitle(String title) {
+        this.title = title;
+    }
+    
+    public String getPriority() {
+        return priority;
+    }
+    
+    public void setPriority(String priority) {
+        this.priority = priority;
+    }
+    
+    public String getCompletedBy() {
+        return completedBy;
+    }
+    
+    public void setCompletedBy(String completedBy) {
+        this.completedBy = completedBy;
+    }
+    
+    public LocalDateTime getCompletedAt() {
+        return completedAt;
+    }
+    
+    public void setCompletedAt(LocalDateTime completedAt) {
+        this.completedAt = completedAt;
     }
 }

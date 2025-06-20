@@ -141,4 +141,57 @@ public class TaskController {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
+    
+    /**
+     * User Story 1: Create a task for a case
+     * POST /api/tasks/create/{caseId}
+     */
+    @PostMapping("/create/{caseId}")
+    public ResponseEntity<TaskModel> createTaskForCase(
+            @PathVariable UUID caseId,
+            @RequestBody CreateTaskRequest request) {
+        try {
+            TaskModel createdTask = taskService.createTask(
+                request.getTitle(),
+                request.getDescription(),
+                caseId,
+                request.getAssignee(),
+                request.getPriority()
+            );
+            return ResponseEntity.ok(createdTask);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    
+    /**
+     * Get draft cases with "Complete Case Creation" tasks
+     * GET /api/tasks/draft-completion
+     */
+    @GetMapping("/draft-completion")
+    public ResponseEntity<List<TaskModel>> getDraftCompletionTasks() {
+        List<TaskModel> tasks = taskService.getTasksByType("Complete Case Creation");
+        return ResponseEntity.ok(tasks);
+    }
+    
+    // DTO for task creation
+    public static class CreateTaskRequest {
+        private String title;
+        private String description;
+        private String assignee;
+        private String priority;
+        
+        // Getters and setters
+        public String getTitle() { return title; }
+        public void setTitle(String title) { this.title = title; }
+        
+        public String getDescription() { return description; }
+        public void setDescription(String description) { this.description = description; }
+        
+        public String getAssignee() { return assignee; }
+        public void setAssignee(String assignee) { this.assignee = assignee; }
+        
+        public String getPriority() { return priority; }
+        public void setPriority(String priority) { this.priority = priority; }
+    }
 }

@@ -113,6 +113,32 @@ public class CaseController {
         }
     }
     
+    /**
+     * User Story 2: Complete case creation (Draft -> Ready/Pending Approval)
+     * PUT /api/cases/{caseId}/complete
+     */
+    @PutMapping("/{caseId}/complete")
+    public ResponseEntity<CaseModel> completeCaseCreation(
+            @PathVariable UUID caseId, 
+            @RequestBody CaseRequestDto updateRequest) {
+        try {
+            CaseModel completedCase = caseService.completeCaseCreation(caseId, updateRequest, "user");
+            return ResponseEntity.ok(completedCase);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    
+    /**
+     * Get draft cases (for "Complete Case Creation" workflow)
+     * GET /api/cases/drafts
+     */
+    @GetMapping("/drafts")
+    public ResponseEntity<List<CaseModel>> getDraftCases() {
+        List<CaseModel> draftCases = caseService.getCasesByStatus(CaseStatus.DRAFT);
+        return ResponseEntity.ok(draftCases);
+    }
+    
     public static class StatusRequest {
         public CaseStatus status;
         public String comment;

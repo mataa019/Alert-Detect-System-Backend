@@ -72,5 +72,45 @@ public class TaskService {
         TaskModel task = new TaskModel(caseId, taskName, candidateGroup);
         task.setProcessInstanceId(processInstanceId);
         return taskRepository.save(task);
+    }    /**
+     * Create a new task (for User Stories 1 & 2)
+     */
+    public TaskModel createTask(String title, String description, UUID caseId, String assignee, String priority) {
+        TaskModel newTask = new TaskModel();
+        newTask.setTitle(title);
+        newTask.setTaskName(title); // Also set taskName for compatibility
+        newTask.setDescription(description);
+        newTask.setCaseId(caseId);
+        newTask.setAssignee(assignee);
+        newTask.setPriority(priority);
+        // status and createdAt are set by constructor
+        
+        return taskRepository.save(newTask);
+    }
+    
+    /**
+     * Complete task by case ID and task type
+     */
+    public void completeTaskByCaseIdAndType(UUID caseId, String taskTitle, String completedBy) {
+        List<TaskModel> tasks = taskRepository.findByCaseId(caseId);
+        
+        for (TaskModel task : tasks) {
+            if (taskTitle.equals(task.getTitle()) && "OPEN".equals(task.getStatus())) {
+                task.setStatus("COMPLETED");
+                task.setCompletedBy(completedBy);
+                task.setCompletedAt(java.time.LocalDateTime.now());
+                taskRepository.save(task);
+                break;
+            }
+        }
+    }
+    
+    /**
+     * Get tasks by type/title
+     */
+    public List<TaskModel> getTasksByType(String taskTitle) {
+        return taskRepository.findAll().stream()
+            .filter(task -> taskTitle.equals(task.getTitle()))
+            .toList();
     }
 }

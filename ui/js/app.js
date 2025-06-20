@@ -639,43 +639,79 @@ async function createCase(event) {
         }
     }
     
+    const editingCaseId = event.target.dataset.editingCaseId;
+    
     try {
-        const result = await apiRequest('/cases/create', {
-            method: 'POST',
-            body: JSON.stringify(requestBody)
-        });
+        let result;
+        let message;
         
-        let message = '';
-        if (result.status === 'DRAFT') {
-            message = `Draft case created successfully! Case Number: ${result.caseNumber}`;
-        } else if (result.status === 'READY_FOR_ASSIGNMENT') {
-            message = `Complete case created and workflow started! Case Number: ${result.caseNumber}`;
+        if (editingCaseId) {
+            // User Story 2: Complete case creation
+            result = await apiRequest(`/cases/${editingCaseId}/complete`, {
+                method: 'PUT',
+                body: JSON.stringify(requestBody)
+            });
+            
+            if (result.status === 'PENDING_CASE_CREATION_APPROVAL') {
+                message = `Case completion submitted for approval! Case Number: ${result.caseNumber}`;
+            } else if (result.status === 'READY_FOR_ASSIGNMENT') {
+                message = `Case completed and ready for assignment! Case Number: ${result.caseNumber}`;
+            } else {
+                message = `Case completed successfully! Case Number: ${result.caseNumber}`;
+            }
+            
         } else {
-            message = `Case created successfully! Case Number: ${result.caseNumber}`;
+            // User Story 1: Create new case
+            result = await apiRequest('/cases/create', {
+                method: 'POST',
+                body: JSON.stringify(requestBody)
+            });
+            
+            if (result.status === 'DRAFT') {
+                message = `Draft case created successfully! Case Number: ${result.caseNumber}. You can complete it later from the Cases tab.`;
+            } else if (result.status === 'PENDING_CASE_CREATION_APPROVAL') {
+                message = `Case created and submitted for approval! Case Number: ${result.caseNumber}`;
+            } else if (result.status === 'READY_FOR_ASSIGNMENT') {
+                message = `Complete case created and workflow started! Case Number: ${result.caseNumber}`;
+            } else {
+                message = `Case created successfully! Case Number: ${result.caseNumber}`;
+            }
         }
         
         showSuccess(message);
         resetForm();
         
-        // If we're on dashboard, refresh it
+        // Refresh dashboard and cases if visible
         if (document.getElementById('dashboard').classList.contains('active')) {
             loadDashboard();
         }
+        if (document.getElementById('cases').classList.contains('active')) {
+            loadCases();
+        }
         
     } catch (error) {
-        console.error('Error creating case:', error);
-        showAlert(`Error creating case: ${error.message}`);
+        console.error('Error creating/completing case:', error);
+        showAlert(`Error processing case: ${error.message}`);
     }
 }
 
 function resetForm() {
-    document.getElementById('case-form').reset();
+    const form = document.getElementById('case-form');
+    form.reset();
+    form.removeAttribute('data-editing-case-id');
+    
     clearFormErrors();
     clearAlerts();
     
     // Reset mode to draft
     document.querySelector('input[name="mode"][value="draft"]').checked = true;
     toggleMode();
+    
+    // Reset form title
+    document.querySelector('#create-case .section-header h2').innerHTML = 
+        '<i class="fas fa-plus"></i> Create Case';
+    document.getElementById('submit-btn').innerHTML = 
+        '<i class="fas fa-save"></i> Create Draft';
 }
 
 // Event Listeners
