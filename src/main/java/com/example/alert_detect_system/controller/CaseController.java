@@ -130,13 +130,50 @@ public class CaseController {
     }
     
     /**
-     * Get draft cases (for "Complete Case Creation" workflow)
-     * GET /api/cases/drafts
+     * Approve case creation (Supervisor function)
+     * PUT /api/cases/{caseId}/approve
      */
-    @GetMapping("/drafts")
-    public ResponseEntity<List<CaseModel>> getDraftCases() {
-        List<CaseModel> draftCases = caseService.getCasesByStatus(CaseStatus.DRAFT);
-        return ResponseEntity.ok(draftCases);
+    @PutMapping("/{caseId}/approve")
+    public ResponseEntity<Map<String, Object>> approveCaseCreation(
+            @PathVariable UUID caseId, 
+            @RequestBody ApprovalRequest request) {
+        try {
+            CaseModel approvedCase = caseService.approveCaseCreation(caseId, request.isApproved(), 
+                request.getComments(), "supervisor"); // In real app, get from auth
+            
+            Map<String, Object> response = new HashMap<>();
+            response.put("case", approvedCase);
+            response.put("message", request.isApproved() ? 
+                "Case approved and workflow started" : "Case rejected");
+            
+            return ResponseEntity.ok(response);
+        } catch (IllegalArgumentException | IllegalStateException e) {
+            Map<String, Object> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        }
+    }
+    
+    /**
+     * Get pending approval cases
+     * GET /api/cases/pending-approval
+     */
+    @GetMapping("/pending-approval")
+    public ResponseEntity<List<CaseModel>> getPendingApprovalCases() {
+        List<CaseModel> pendingCases = caseService.getCasesByStatus(CaseStatus.PENDING_CASE_CREATION_APPROVAL);
+        return ResponseEntity.ok(pendingCases);
+    }
+    
+    // DTO for approval request
+    public static class ApprovalRequest {
+        private boolean approved;
+        private String comments;
+        
+        public boolean isApproved() { return approved; }
+        public void setApproved(boolean approved) { this.approved = approved; }
+        
+        public String getComments() { return comments; }
+        public void setComments(String comments) { this.comments = comments; }
     }
     
     public static class StatusRequest {

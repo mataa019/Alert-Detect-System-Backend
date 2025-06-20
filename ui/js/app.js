@@ -130,6 +130,9 @@ function showSection(sectionId) {
         case 'tasks':
             loadTasks();
             break;
+        case 'approvals':
+            loadApprovals();
+            break;
     }
 }
 
@@ -526,6 +529,130 @@ async function showTaskDetails(taskId) {
     } catch (error) {
         console.error('Error loading task details:', error);
         showAlert(`Error loading task details: ${error.message}`);
+    }
+}
+
+// Approval Functions
+async function loadApprovals() {
+    try {
+        const pendingCases = await apiRequest('/cases/pending-approval');
+        displayPendingApprovals(pendingCases);
+    } catch (error) {
+        console.error('Error loading pending approvals:', error);
+        document.getElementById('pending-approvals').innerHTML = `
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-circle"></i>
+                Error loading pending approvals: ${error.message}
+            </div>
+        `;
+    }
+}
+
+function displayPendingApprovals(cases) {
+    const container = document.getElementById('pending-approvals');
+    
+    if (cases.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-check-circle"></i>
+                <h3>No Pending Approvals</h3>
+                <p>All cases have been reviewed and approved.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = cases.map(caseItem => `
+        <div class="case-card approval-card">
+            <div class="case-header">
+                <div class="case-number">${caseItem.caseNumber}</div>
+                <div class="case-status status-pending-approval">Pending Approval</div>
+            </div>
+            <div class="case-details">
+                <div class="case-detail">
+                    <label>Type</label>
+                    <span>${caseItem.caseType || 'N/A'}</span>
+                </div>
+                <div class="case-detail">
+                    <label>Priority</label>
+                    <span class="priority-${caseItem.priority?.toLowerCase() || 'normal'}">${caseItem.priority || 'N/A'}</span>
+                </div>
+                <div class="case-detail">
+                    <label>Risk Score</label>
+                    <span class="risk-score-${getRiskLevel(caseItem.riskScore)}">${caseItem.riskScore || 'N/A'}</span>
+                </div>
+                <div class="case-detail">
+                    <label>Created By</label>
+                    <span>${caseItem.createdBy}</span>
+                </div>
+                <div class="case-detail">
+                    <label>Entity</label>
+                    <span>${caseItem.entity || 'N/A'}</span>
+                </div>
+                <div class="case-detail">
+                    <label>Alert ID</label>
+                    <span>${caseItem.alertId || 'N/A'}</span>
+                </div>
+            </div>
+            <div class="case-description">
+                <strong>Description:</strong>
+                <p>${caseItem.description || 'No description'}</p>
+            </div>
+            <div class="approval-actions">
+                <button class="btn btn-success btn-sm" onclick="approveCase('${caseItem.id}', true)">
+                    <i class="fas fa-check"></i> Approve
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="approveCase('${caseItem.id}', false)">
+                    <i class="fas fa-times"></i> Reject
+                </button>
+                <button class="btn btn-info btn-sm" onclick="showCaseDetails('${caseItem.id}')">
+                    <i class="fas fa-eye"></i> View Details
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+function getRiskLevel(riskScore) {
+    if (!riskScore) return 'unknown';
+    if (riskScore >= 80) return 'high';
+    if (riskScore >= 50) return 'medium';
+    return 'low';
+}
+
+async function approveCase(caseId, approved) {
+    const comments = prompt(approved ? 
+        'Enter approval comments (optional):' : 
+        'Enter rejection reason (required):');
+    
+    if (!approved && (!comments || comments.trim() === '')) {
+        showAlert('Rejection reason is required');
+        return;
+    }
+    
+    try {
+        const response = await apiRequest(`/cases/${caseId}/approve`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                approved: approved,
+                comments: comments || ''
+            })
+        });
+        
+        const action = approved ? 'approved' : 'rejected';
+        showSuccess(`Case ${action} successfully!`);
+        
+        // Refresh approvals list
+        loadApprovals();
+        
+        // Refresh dashboard if it's visible
+        if (document.getElementById('dashboard').classList.contains('active')) {
+            loadDashboard();
+        }
+        
+    } catch (error) {
+        console.error('Error processing approval:', error);
+        showAlert(`Error processing approval: ${error.message}`);
     }
 }
 

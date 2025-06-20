@@ -408,5 +408,90 @@ public class CaseService {
         }
     }
     
+    /**
+     * Approve or reject case creation (Supervisor function)
+     */
+    public CaseModel approveCaseCreation(UUID caseId, boolean approved, String comments, String approvedBy) {
+        logger.info("Processing case approval for case: {} by supervisor: {}", caseId, approvedBy);
+        
+        Optional<CaseModel> caseOpt = caseRepository.findById(caseId);
+        if (caseOpt.isEmpty()) {
+            throw new IllegalArgumentException("Case not found with ID: " + caseId);
+        }
+        
+        CaseModel existingCase = caseOpt.get();
+        
+        // Validate that only PENDING_CASE_CREATION_APPROVAL cases can be approved
+        if (existingCase.getStatus() != CaseStatus.PENDING_CASE_CREATION_APPROVAL) {
+            throw new IllegalStateException("Only pending approval cases can be approved. Current status: " + existingCase.getStatus());
+        }
+        
+        if (approved) {
+            // Approve case - move to READY_FOR_ASSIGNMENT
+            existingCase.setStatus(CaseStatus.READY_FOR_ASSIGNMENT);
+            existingCase.setUpdatedBy(approvedBy);
+            existingCase.setUpdatedAt(LocalDateTime.now());
+            
+            // Save case
+            CaseModel savedCase = caseRepository.save(existingCase);
+            
+            // Log approval
+            auditService.logCaseAction(savedCase.getId(), "CASE_APPROVED", approvedBy, 
+                String.format("Case approved by supervisor. Comments: %s", comments != null ? comments : "No comments"));
+            
+            // Complete approval task and start investigation workflow
+            try {
+                taskService.completeTaskByCaseIdAndType(caseId, "Approve Case Creation", approvedBy);
+                
+                // Start BPMN workflow
+                String processInstanceId = caseWorkflowService.startCaseWorkflow(savedCase);
+                savedCase.setProcessInstanceId(processInstanceId);
+                savedCase = caseRepository.save(savedCase);
+                
+                auditService.logCaseAction(savedCase.getId(), "WORKFLOW_STARTED", approvedBy, 
+                    "Investigation workflow started after approval");
+                    
+            } catch (Exception e) {
+                logger.error("Failed to start workflow after approval for case: {}", savedCase.getId(), e);
+            }
+            
+            return savedCase;
+            
+        } else {
+            // Reject case - move back to DRAFT for revision
+            existingCase.setStatus(CaseStatus.DRAFT);
+            existingCase.setUpdatedBy(approvedBy);
+            existingCase.setUpdatedAt(LocalDateTime.now());
+            
+            // Save case
+            CaseModel savedCase = caseRepository.save(existingCase);
+            
+            // Log rejection
+            auditService.logCaseAction(savedCase.getId(), "CASE_REJECTED", approvedBy, 
+                String.format("Case rejected by supervisor. Comments: %s", comments != null ? comments : "No comments"));
+            
+            // Complete approval task and create new "Complete Case Creation" task
+            try {
+                taskService.completeTaskByCaseIdAndType(caseId, "Approve Case Creation", approvedBy);
+                
+                taskService.createTask(
+                    "Complete Case Creation",
+                    "Case was rejected. Please revise and resubmit. Rejection reason: " + (comments != null ? comments : "No reason provided"),
+                    savedCase.getId(),
+                    savedCase.getCreatedBy(), // Assign back to original creator
+                    "HIGH" // High priority since it was rejected
+                );
+                
+                auditService.logCaseAction(savedCase.getId(), "TASK_CREATED", approvedBy, 
+                    "Complete Case Creation task created after rejection");
+                    
+            } catch (Exception e) {
+                logger.error("Failed to create revision task after rejection for case: {}", savedCase.getId(), e);
+            }
+            
+            return savedCase;
+        }
+    }
+    
     // ...existing code...
 }
