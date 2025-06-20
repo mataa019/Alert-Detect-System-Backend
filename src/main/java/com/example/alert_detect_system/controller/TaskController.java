@@ -8,6 +8,7 @@ import java.util.UUID;
 import org.flowable.task.api.Task;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
+import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -21,6 +22,7 @@ import com.example.alert_detect_system.service.TaskService;
 
 @RestController
 @RequestMapping("/api/tasks")
+@CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"})
 public class TaskController {
     
     @Autowired
