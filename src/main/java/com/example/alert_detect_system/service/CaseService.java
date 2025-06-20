@@ -30,9 +30,9 @@ public class CaseService {
     
     @Autowired
     private CaseWorkflowService caseWorkflowService;
-    
-    private static final List<String> VALID_CASE_TYPES = List.of(
-        "AML", "FRAUD", "COMPLIANCE", "SANCTIONS", "KYC"
+      private static final List<String> VALID_CASE_TYPES = List.of(
+        "FRAUD_DETECTION", "MONEY_LAUNDERING", "SUSPICIOUS_ACTIVITY", "COMPLIANCE_VIOLATION",
+        "AML", "FRAUD", "COMPLIANCE", "SANCTIONS", "KYC"  // Keep old values for backward compatibility
     );
     
     private static final List<String> VALID_PRIORITIES = List.of(
@@ -194,20 +194,23 @@ public class CaseService {
     public List<CaseModel> getCasesByCreatedBy(String createdBy) {
         return caseRepository.findByCreatedBy(createdBy);
     }
-    
-    private void validateCaseRequest(CaseRequestDto caseRequest) {
-        if (!VALID_CASE_TYPES.contains(caseRequest.getCaseType())) {
+      private void validateCaseRequest(CaseRequestDto caseRequest) {
+        // Validate case type
+        if (caseRequest.getCaseType() != null && !VALID_CASE_TYPES.contains(caseRequest.getCaseType())) {
             throw new IllegalArgumentException("Invalid case type: " + caseRequest.getCaseType());
         }
         
-        if (!VALID_PRIORITIES.contains(caseRequest.getPriority())) {
+        // Validate priority
+        if (caseRequest.getPriority() != null && !VALID_PRIORITIES.contains(caseRequest.getPriority())) {
             throw new IllegalArgumentException("Invalid priority: " + caseRequest.getPriority());
         }
         
+        // Validate typology (optional field)
         if (caseRequest.getTypology() != null && !VALID_TYPOLOGIES.contains(caseRequest.getTypology())) {
             throw new IllegalArgumentException("Invalid typology: " + caseRequest.getTypology());
         }
         
+        // Validate risk score
         if (caseRequest.getRiskScore() != null && 
             (caseRequest.getRiskScore() < 0 || caseRequest.getRiskScore() > 100)) {
             throw new IllegalArgumentException("Risk score must be between 0 and 100");
