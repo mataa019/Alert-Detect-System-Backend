@@ -12,6 +12,7 @@ import org.springframework.web.bind.annotation.CrossOrigin;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
+import org.springframework.web.bind.annotation.PutMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
@@ -81,9 +82,50 @@ public class TaskController {
             }
             
             taskService.completeTask(taskId, variables);
-            return ResponseEntity.ok("Task completed successfully");
-        } catch (Exception e) {
+            return ResponseEntity.ok("Task completed successfully");        } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+    
+    // Update task (as per API spec: PUT /api/task/update/:task-id)
+    @PutMapping("/update/{taskId}")
+    public ResponseEntity<?> updateTask(@PathVariable String taskId, @RequestBody Map<String, Object> updateData) {
+        try {
+            if (taskId == null || taskId.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("TaskId is required");
+            }
+            
+            // Get task details first
+            Task task = taskService.getTaskById(taskId);
+            if (task == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            // Check if this is a "Complete Case Creation" task
+            String taskName = task.getName();
+            if (!"Complete Case Creation".equals(taskName)) {
+                return ResponseEntity.badRequest().body("Only 'Complete Case Creation' tasks can be updated");
+            }
+            
+            // Complete the current task and create new "Approve Case Creation" task
+            Map<String, Object> variables = new HashMap<>();
+            variables.put("action", "CASE_UPDATED");
+            variables.put("updatedBy", updateData.getOrDefault("updatedBy", "user"));
+            
+            // Complete current task
+            taskService.completeTask(taskId, variables);
+            
+            // The BPMN workflow should automatically create the "Approve Case Creation" task
+            // Return success response
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Task updated successfully");
+            response.put("status", "COMPLETED");
+            response.put("nextTask", "Approve Case Creation");
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error updating task: " + e.getMessage());
         }
     }
       // Create task record

@@ -3,6 +3,7 @@ package com.example.alert_detect_system.controller;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Optional;
 import java.util.UUID;
 
 import org.springframework.beans.factory.annotation.Autowired;
@@ -45,11 +46,32 @@ public class CaseController {
             .map(ResponseEntity::ok)
             .orElse(ResponseEntity.notFound().build());
     }
-    
-    @PutMapping("/{caseId}/status")
+      @PutMapping("/{caseId}/status")
     public ResponseEntity<CaseModel> updateCaseStatus(@PathVariable UUID caseId, @RequestBody StatusRequest request) {
         CaseModel updatedCase = caseService.updateCaseStatus(caseId, request.status, "user");
         return ResponseEntity.ok(updatedCase);
+    }
+    
+    // Update case details (for completing DRAFT cases)
+    @PutMapping("/{caseId}")
+    public ResponseEntity<?> updateCase(@PathVariable UUID caseId, @RequestBody CaseRequestDto caseUpdate) {
+        try {
+            // Validate that case is in DRAFT status
+            Optional<CaseModel> existingCase = caseService.getCaseById(caseId);
+            if (existingCase.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            if (!CaseStatus.DRAFT.equals(existingCase.get().getStatus())) {
+                return ResponseEntity.badRequest().body("Only DRAFT cases can be updated");
+            }
+            
+            // Update case details
+            CaseModel updatedCase = caseService.updateCase(caseId, caseUpdate, "user");
+            return ResponseEntity.ok(updatedCase);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error updating case: " + e.getMessage());
+        }
     }
       @GetMapping("/by-status/{status}")
     public ResponseEntity<List<CaseModel>> getCasesByStatus(@PathVariable CaseStatus status) {

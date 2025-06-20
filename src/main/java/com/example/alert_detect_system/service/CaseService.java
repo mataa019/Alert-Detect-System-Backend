@@ -113,8 +113,66 @@ public class CaseService {
         
         // Log status change
         auditService.logCaseStatusChange(caseId, updatedBy, oldStatus.toString(), newStatus.toString());
+          return updatedCase;
+    }
+    
+    public CaseModel updateCase(UUID caseId, CaseRequestDto caseUpdate, String updatedBy) {
+        logger.info("Updating case with ID: {} by user: {}", caseId, updatedBy);
         
-        return updatedCase;
+        // Get existing case
+        Optional<CaseModel> caseOpt = caseRepository.findById(caseId);
+        if (caseOpt.isEmpty()) {
+            throw new IllegalArgumentException("Case not found with ID: " + caseId);
+        }
+        
+        CaseModel existingCase = caseOpt.get();
+        
+        // Validate that case is in DRAFT status
+        if (!CaseStatus.DRAFT.equals(existingCase.getStatus())) {
+            throw new IllegalArgumentException("Only DRAFT cases can be updated");
+        }
+        
+        // Validate updated data
+        validateCaseRequest(caseUpdate);
+        
+        // Update case fields
+        if (caseUpdate.getCaseType() != null) {
+            existingCase.setCaseType(caseUpdate.getCaseType());
+        }
+        if (caseUpdate.getPriority() != null) {
+            existingCase.setPriority(caseUpdate.getPriority());
+        }
+        if (caseUpdate.getDescription() != null) {
+            existingCase.setDescription(caseUpdate.getDescription());
+        }        if (caseUpdate.getRiskScore() != null) {
+            existingCase.setRiskScore(caseUpdate.getRiskScore());
+        }
+        // Note: CustomerDetails not available in CaseRequestDto, would need separate DTO for updates
+        
+        existingCase.setUpdatedAt(LocalDateTime.now());
+        
+        // Check if case is now complete and should be moved to PENDING_CASE_CREATION_APPROVAL
+        if (isCaseComplete(existingCase)) {
+            existingCase.setStatus(CaseStatus.PENDING_CASE_CREATION_APPROVAL);
+            auditService.logCaseStatusChange(caseId, updatedBy, "DRAFT", "PENDING_CASE_CREATION_APPROVAL");
+        }
+        
+        CaseModel savedCase = caseRepository.save(existingCase);
+        
+        // Log case update
+        auditService.logCaseAction(caseId, "CASE_UPDATED", updatedBy, 
+            "Case details updated and validation completed");
+        
+        logger.info("Case updated successfully: {}", caseId);
+        return savedCase;
+    }
+    
+    private boolean isCaseComplete(CaseModel caseModel) {
+        // Check if all mandatory fields are filled
+        return caseModel.getDescription() != null && !caseModel.getDescription().trim().isEmpty()
+            && caseModel.getCaseType() != null && !caseModel.getCaseType().trim().isEmpty()
+            && caseModel.getPriority() != null && !caseModel.getPriority().trim().isEmpty()
+            && caseModel.getRiskScore() != null && caseModel.getRiskScore() > 0;
     }
     
     public List<CaseModel> getAllCases() {
