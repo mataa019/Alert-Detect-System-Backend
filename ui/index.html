@@ -7,8 +7,7 @@
     <link rel="stylesheet" href="css/styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body>
-    <!-- Header -->
+<body>    <!-- Header -->
     <header class="header">
         <div class="header-content">
             <div class="logo">
@@ -21,7 +20,8 @@
                 </button>
                 <button class="nav-btn" data-section="cases">
                     <i class="fas fa-folder-open"></i> Cases
-                </button>                <button class="nav-btn" data-section="tasks">
+                </button>
+                <button class="nav-btn" data-section="tasks">
                     <i class="fas fa-tasks"></i> Tasks
                 </button>
                 <button class="nav-btn" data-section="approvals">
@@ -31,6 +31,21 @@
                     <i class="fas fa-plus"></i> Create Case
                 </button>
             </nav>
+            <div class="user-section">
+                <div class="user-info">
+                    <i class="fas fa-user"></i>
+                    <span>John Analyst</span>
+                    <span class="role-badge role-analyst">ANALYST</span>
+                </div>
+                <div class="user-switcher">
+                    <select id="user-select" onchange="switchUser(this.value)">
+                        <option value="analyst1">John Analyst (Analyst)</option>
+                        <option value="analyst2">Jane Analyst (Analyst)</option>
+                        <option value="supervisor1">Mike Supervisor (Supervisor)</option>
+                        <option value="admin1">Sarah Admin (Admin)</option>
+                    </select>
+                </div>
+            </div>
         </div>
     </header>
 
@@ -121,16 +136,17 @@
             <div id="cases-container" class="cases-container">
                 <!-- Cases will be loaded here -->
             </div>
-        </section>
-
-        <!-- Tasks Section -->
+        </section>        <!-- Tasks Section -->
         <section id="tasks" class="section">
             <div class="section-header">
                 <h2><i class="fas fa-tasks"></i> Tasks</h2>
                 <div class="header-actions">
-                    <input type="text" id="assignee-input" placeholder="Enter assignee (e.g., user)" value="user">
+                    <div class="assignee-input-group" id="assignee-group">
+                        <label for="assignee-input">View tasks for:</label>
+                        <input type="text" id="assignee-input" placeholder="Enter assignee (e.g., user)" value="analyst1">
+                    </div>
                     <button class="btn btn-secondary" onclick="loadTasks()">
-                        <i class="fas fa-refresh"></i> Load My Tasks
+                        <i class="fas fa-refresh"></i> Load Tasks
                     </button>
                 </div>
             </div>

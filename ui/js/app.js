@@ -18,6 +18,131 @@ const VALID_TYPOLOGIES = [
     "MONEY_LAUNDERING", "TERRORIST_FINANCING", "FRAUD", "SANCTIONS_VIOLATION"
 ];
 
+// User Management and Role System
+const USER_ROLES = {
+    ANALYST: 'ANALYST',
+    SUPERVISOR: 'SUPERVISOR',
+    ADMIN: 'ADMIN'
+};
+
+const USERS = {
+    'analyst1': { name: 'John Analyst', role: USER_ROLES.ANALYST, email: 'john.analyst@company.com' },
+    'analyst2': { name: 'Jane Analyst', role: USER_ROLES.ANALYST, email: 'jane.analyst@company.com' },
+    'supervisor1': { name: 'Mike Supervisor', role: USER_ROLES.SUPERVISOR, email: 'mike.supervisor@company.com' },
+    'admin1': { name: 'Sarah Admin', role: USER_ROLES.ADMIN, email: 'sarah.admin@company.com' }
+};
+
+let currentUserData = USERS[currentUser];
+
+// Role-based permissions
+function hasPermission(action) {
+    const userRole = currentUserData.role;
+    
+    switch (action) {
+        case 'CREATE_CASE':
+            return [USER_ROLES.ANALYST, USER_ROLES.SUPERVISOR, USER_ROLES.ADMIN].includes(userRole);
+        case 'APPROVE_CASE':
+            return [USER_ROLES.SUPERVISOR, USER_ROLES.ADMIN].includes(userRole);
+        case 'ASSIGN_TASK':
+            return [USER_ROLES.SUPERVISOR, USER_ROLES.ADMIN].includes(userRole);
+        case 'VIEW_ALL_CASES':
+            return [USER_ROLES.SUPERVISOR, USER_ROLES.ADMIN].includes(userRole);
+        case 'COMPLETE_TASK':
+            return [USER_ROLES.ANALYST, USER_ROLES.SUPERVISOR, USER_ROLES.ADMIN].includes(userRole);
+        case 'MANAGE_USERS':
+            return userRole === USER_ROLES.ADMIN;
+        default:
+            return true;
+    }
+}
+
+function switchUser(username) {
+    if (USERS[username]) {
+        currentUser = username;
+        currentUserData = USERS[username];
+        updateUIBasedOnRole();
+        refreshAllData();
+        showSuccess(`Switched to user: ${currentUserData.name} (${currentUserData.role})`);
+    } else {
+        showAlert('User not found');
+    }
+}
+
+function updateUIBasedOnRole() {
+    const userRole = currentUserData.role;
+    
+    // Update header to show current user
+    const userInfo = document.querySelector('.user-info');
+    if (userInfo) {
+        userInfo.innerHTML = `
+            <i class="fas fa-user"></i>
+            <span>${currentUserData.name}</span>
+            <span class="role-badge role-${userRole.toLowerCase()}">${userRole}</span>
+        `;
+    }
+    
+    // Update user selector
+    const userSelect = document.getElementById('user-select');
+    if (userSelect) {
+        userSelect.value = currentUser;
+    }
+    
+    // Show/hide navigation items based on role
+    const approvalsNav = document.querySelector('[data-section="approvals"]');
+    if (approvalsNav) {
+        approvalsNav.style.display = hasPermission('APPROVE_CASE') ? 'flex' : 'none';
+    }
+    
+    // Handle task assignee input visibility
+    const assigneeGroup = document.getElementById('assignee-group');
+    const assigneeInput = document.getElementById('assignee-input');
+    
+    if (assigneeGroup && assigneeInput) {
+        if (hasPermission('VIEW_ALL_CASES')) {
+            // Supervisors can view tasks for any user
+            assigneeGroup.style.display = 'flex';
+            assigneeInput.value = currentUser;
+            assigneeInput.placeholder = 'Enter username to view their tasks';
+        } else {
+            // Analysts can only view their own tasks
+            assigneeGroup.style.display = 'none';
+            assigneeInput.value = currentUser;
+        }
+    }
+    
+    // Update button text based on role
+    const loadTasksBtn = document.querySelector('[onclick="loadTasks()"]');
+    if (loadTasksBtn) {
+        if (hasPermission('VIEW_ALL_CASES')) {
+            loadTasksBtn.innerHTML = '<i class="fas fa-refresh"></i> Load Tasks';
+        } else {
+            loadTasksBtn.innerHTML = '<i class="fas fa-refresh"></i> Load My Tasks';
+        }
+    }
+}
+
+function refreshAllData() {
+    // Refresh all sections based on current view
+    const activeSection = document.querySelector('.section.active');
+    if (activeSection) {
+        const sectionId = activeSection.id;
+        switch (sectionId) {
+            case 'dashboard':
+                refreshDashboard();
+                break;
+            case 'cases':
+                loadCases();
+                break;
+            case 'tasks':
+                loadTasks();
+                break;
+            case 'approvals':
+                loadApprovals();
+                break;
+        }
+    }
+}
+
 // Utility Functions
 function showLoading() {
     document.getElementById('loading-overlay').style.display = 'flex';
@@ -390,9 +515,18 @@ function closeModal() {
 async function loadTasks() {
     const assignee = document.getElementById('assignee-input').value || currentUser;
     
+    // Check if user has permission to view all tasks or just their own
+    const canViewAllTasks = hasPermission('VIEW_ALL_CASES');
+    const actualAssignee = canViewAllTasks ? assignee : currentUser;
+    
     try {
-        const tasks = await apiRequest(`/tasks/my/${assignee}`);
-        displayTasks(tasks);
+        // Load both Flowable tasks and database tasks
+        const [flowableTasks, dbTasks] = await Promise.all([
+            apiRequest(`/tasks/my/${actualAssignee}`).catch(() => []), // Flowable tasks
+            apiRequest(`/tasks/by-assignee/${actualAssignee}`).catch(() => []) // Database tasks
+        ]);
+        
+        displayTasks(flowableTasks, dbTasks);
     } catch (error) {
         console.error('Error loading tasks:', error);
         document.getElementById('tasks-container').innerHTML = `
@@ -404,10 +538,10 @@ async function loadTasks() {
     }
 }
 
-function displayTasks(tasks) {
+function displayTasks(flowableTasks = [], dbTasks = []) {
     const container = document.getElementById('tasks-container');
     
-    if (tasks.length === 0) {
+    if (flowableTasks.length === 0 && dbTasks.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
                 <i class="fas fa-tasks"></i>
@@ -418,56 +552,128 @@ function displayTasks(tasks) {
         return;
     }
     
-    container.innerHTML = tasks.map(task => `
-        <div class="task-card">
-            <div class="task-header">
-                <div class="task-name">${task.name}</div>
+    let html = '';
+    
+    // Display Database Tasks (Case-related tasks)
+    if (dbTasks.length > 0) {
+        html += '<h3><i class="fas fa-clipboard-list"></i> Case Management Tasks</h3>';
+        html += dbTasks.map(task => `
+            <div class="task-card task-db">
+                <div class="task-header">
+                    <div class="task-name">${task.title || task.taskName}</div>
+                    <div class="task-status status-${(task.status || '').toLowerCase()}">${task.status || 'Open'}</div>
+                </div>
+                <div class="task-details">
+                    <div class="task-detail">
+                        <label>Task Type</label>
+                        <span>${task.title || task.taskName}</span>
+                    </div>
+                    <div class="task-detail">
+                        <label>Case ID</label>
+                        <span>${task.caseId}</span>
+                    </div>
+                    <div class="task-detail">
+                        <label>Priority</label>
+                        <span class="priority-${(task.priority || 'normal').toLowerCase()}">${task.priority || 'Normal'}</span>
+                    </div>
+                    <div class="task-detail">
+                        <label>Assigned To</label>
+                        <span>${task.assignee || 'Unassigned'}</span>
+                    </div>
+                    <div class="task-detail">
+                        <label>Created</label>
+                        <span>${formatDate(task.createdAt)}</span>
+                    </div>
+                </div>
+                <div class="task-description">
+                    ${task.description || 'No description provided'}
+                </div>
+                <div class="task-actions">
+                    ${task.status === 'OPEN' ? `
+                        <button class="btn btn-primary btn-sm" onclick="completeTask('${task.id}', 'database')">
+                            <i class="fas fa-check"></i> Complete Task
+                        </button>
+                    ` : ''}
+                    <button class="btn btn-info btn-sm" onclick="viewCaseFromTask('${task.caseId}')">
+                        <i class="fas fa-folder-open"></i> View Case
+                    </button>
+                </div>
             </div>
-            <div class="task-details">
-                <div class="case-detail">
-                    <label>Task ID</label>
-                    <span>${task.id}</span>
+        `).join('');
+    }
+    
+    // Display Flowable Tasks (BPMN Workflow tasks)
+    if (flowableTasks.length > 0) {
+        html += '<h3><i class="fas fa-project-diagram"></i> Workflow Tasks</h3>';
+        html += flowableTasks.map(task => `
+            <div class="task-card task-flowable">
+                <div class="task-header">
+                    <div class="task-name">${task.name}</div>
+                    <div class="task-status status-active">Active</div>
                 </div>
-                <div class="case-detail">
-                    <label>Assignee</label>
-                    <span>${task.assignee || 'Unassigned'}</span>
+                <div class="task-details">
+                    <div class="task-detail">
+                        <label>Task ID</label>
+                        <span>${task.id}</span>
+                    </div>
+                    <div class="task-detail">
+                        <label>Process Instance</label>
+                        <span>${task.processInstanceId}</span>
+                    </div>
+                    <div class="task-detail">
+                        <label>Assignee</label>
+                        <span>${task.assignee || 'Unassigned'}</span>
+                    </div>
+                    <div class="task-detail">
+                        <label>Created</label>
+                        <span>${formatDate(task.createTime)}</span>
+                    </div>
+                    ${task.dueDate ? `
+                    <div class="task-detail">
+                        <label>Due Date</label>
+                        <span>${formatDate(task.dueDate)}</span>
+                    </div>
+                    ` : ''}
                 </div>
-                <div class="case-detail">
-                    <label>Created</label>
-                    <span>${formatDate(task.createTime)}</span>
+                <div class="task-description">
+                    ${task.description || 'BPMN workflow task'}
                 </div>
-                <div class="case-detail">
-                    <label>Process Instance</label>
-                    <span>${task.processInstanceId || 'N/A'}</span>
+                <div class="task-actions">
+                    <button class="btn btn-success btn-sm" onclick="completeTask('${task.id}', 'flowable')">
+                        <i class="fas fa-check"></i> Complete Workflow Task
+                    </button>
                 </div>
             </div>
-            <div class="task-actions">
-                ${task.name === 'Complete Case Creation' ? 
-                    `<button class="btn btn-success btn-sm" onclick="completeTask('${task.id}')">
-                        <i class="fas fa-check"></i> Complete Task
-                    </button>` : ''
-                }
-                <button class="btn btn-info btn-sm" onclick="showTaskDetails('${task.id}')">
-                    <i class="fas fa-eye"></i> View Details
-                </button>
-            </div>
-        </div>
-    `).join('');
+        `).join('');
+    }    
+    container.innerHTML = html;
 }
 
-async function completeTask(taskId) {
+async function completeTask(taskId, taskType = 'database') {
     if (!confirm('Are you sure you want to complete this task?')) {
         return;
     }
     
     try {
-        await apiRequest(`/task/update/${taskId}`, {
-            method: 'PUT',
-            body: JSON.stringify({
-                updatedBy: currentUser,
-                action: 'COMPLETE_CASE_CREATION'
-            })
-        });
+        if (taskType === 'flowable') {
+            // Complete Flowable BPMN task
+            await apiRequest(`/tasks/complete/${taskId}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    variables: {},
+                    action: 'complete'
+                })
+            });
+        } else {
+            // Complete database task
+            await apiRequest(`/task/update/${taskId}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    updatedBy: currentUser,
+                    action: 'COMPLETE_TASK'
+                })
+            });
+        }
         
         showSuccess('Task completed successfully!');
         await loadTasks(); // Refresh tasks
@@ -597,14 +803,20 @@ function displayPendingApprovals(cases) {
             <div class="case-description">
                 <strong>Description:</strong>
                 <p>${caseItem.description || 'No description'}</p>
-            </div>
-            <div class="approval-actions">
-                <button class="btn btn-success btn-sm" onclick="approveCase('${caseItem.id}', true)">
-                    <i class="fas fa-check"></i> Approve
-                </button>
-                <button class="btn btn-danger btn-sm" onclick="approveCase('${caseItem.id}', false)">
-                    <i class="fas fa-times"></i> Reject
-                </button>
+            </div>            <div class="approval-actions">
+                ${hasPermission('APPROVE_CASE') ? `
+                    <button class="btn btn-success btn-sm" onclick="approveCase('${caseItem.id}', true)">
+                        <i class="fas fa-check"></i> Approve
+                    </button>
+                    <button class="btn btn-danger btn-sm" onclick="approveCase('${caseItem.id}', false)">
+                        <i class="fas fa-times"></i> Reject
+                    </button>
+                ` : `
+                    <div class="permission-notice">
+                        <i class="fas fa-info-circle"></i>
+                        You need supervisor privileges to approve cases
+                    </div>
+                `}
                 <button class="btn btn-info btn-sm" onclick="showCaseDetails('${caseItem.id}')">
                     <i class="fas fa-eye"></i> View Details
                 </button>
@@ -621,6 +833,12 @@ function getRiskLevel(riskScore) {
 }
 
 async function approveCase(caseId, approved) {
+    // Check if user has permission to approve cases
+    if (!hasPermission('APPROVE_CASE')) {
+        showAlert('You do not have permission to approve cases');
+        return;
+    }
+    
     const comments = prompt(approved ? 
         'Enter approval comments (optional):' : 
         'Enter rejection reason (required):');
@@ -635,12 +853,13 @@ async function approveCase(caseId, approved) {
             method: 'PUT',
             body: JSON.stringify({
                 approved: approved,
-                comments: comments || ''
+                comments: comments || '',
+                approvedBy: currentUser
             })
         });
         
         const action = approved ? 'approved' : 'rejected';
-        showSuccess(`Case ${action} successfully!`);
+        showSuccess(`Case ${action} successfully by ${currentUserData.name}!`);
         
         // Refresh approvals list
         loadApprovals();
@@ -754,8 +973,7 @@ async function createCase(event) {
     
     const formData = new FormData(event.target);
     const requestBody = {};
-    
-    // Only include non-empty fields
+      // Only include non-empty fields
     for (let [key, value] of formData.entries()) {
         if (value && value.trim()) {
             if (key === 'riskScore') {
@@ -765,6 +983,10 @@ async function createCase(event) {
             }
         }
     }
+    
+    // Add current user information
+    requestBody.createdBy = currentUser;
+    requestBody.assignee = currentUser; // Initially assign to creator
     
     const editingCaseId = event.target.dataset.editingCaseId;
     
@@ -841,8 +1063,116 @@ function resetForm() {
         '<i class="fas fa-save"></i> Create Draft';
 }
 
+/**
+ * User Story 2: Complete case creation (edit draft case)
+ */
+async function editCase(caseId) {
+    console.log('editCase called with caseId:', caseId);
+    alert('Edit case function called for case: ' + caseId); // Temporary debug
+    
+    try {
+        const caseItem = await apiRequest(`/cases/${caseId}`);
+        console.log('Case loaded:', caseItem);
+        
+        if (caseItem.status !== 'DRAFT') {
+            showAlert('Only draft cases can be edited for completion');
+            return;
+        }
+        
+        // Populate the form with existing case data
+        populateFormForEdit(caseItem);
+        
+        // Switch to create-case section
+        showSection('create-case');
+        
+        // Set mode to complete
+        const completeRadio = document.querySelector('input[name="mode"][value="complete"]');
+        if (completeRadio) {
+            completeRadio.checked = true;
+            toggleMode();
+        }
+        
+        // Update form title and button
+        const headerElement = document.querySelector('#create-case .section-header h2');
+        const submitButton = document.getElementById('submit-btn');
+        
+        if (headerElement) {
+            headerElement.innerHTML = '<i class="fas fa-edit"></i> Complete Case Creation';
+        }
+        
+        if (submitButton) {
+            submitButton.innerHTML = '<i class="fas fa-check"></i> Complete Case Creation';
+        }
+        
+        // Store case ID for completion
+        const form = document.getElementById('case-form');
+        if (form) {
+            form.dataset.editingCaseId = caseId;
+        }
+        
+        showSuccess('Draft case loaded for completion. Fill in the required details.');
+        
+    } catch (error) {
+        console.error('Error loading case for edit:', error);
+        showAlert(`Error loading case: ${error.message}`);
+    }
+}
+
+/**
+ * Populate form with existing case data
+ */
+function populateFormForEdit(caseItem) {
+    console.log('Populating form with case data:', caseItem);
+    
+    const form = document.getElementById('case-form');
+    if (!form) {
+        console.error('Case form not found');
+        return;
+    }
+    
+    // Populate form fields
+    const fields = {
+        'caseType': caseItem.caseType,
+        'priority': caseItem.priority,
+        'entity': caseItem.entity,
+        'alertId': caseItem.alertId,
+        'description': caseItem.description,
+        'riskScore': caseItem.riskScore,
+        'typology': caseItem.typology
+    };
+    
+    Object.entries(fields).forEach(([fieldName, value]) => {
+        const field = form.elements[fieldName];
+        if (field && value !== null && value !== undefined) {
+            field.value = value;
+            console.log(`Set ${fieldName} to:`, value);
+        }
+    });
+}
+
+// Function to view case from task
+async function viewCaseFromTask(caseId) {
+    try {
+        // Switch to cases section and show the specific case
+        showSection('cases');
+        await loadCases();
+        
+        // Find and show the case details
+        setTimeout(() => {
+            showCaseDetails(caseId);
+        }, 500); // Small delay to ensure cases are loaded
+        
+    } catch (error) {
+        console.error('Error viewing case from task:', error);
+        showAlert(`Error viewing case: ${error.message}`);
+    }
+}
+
 // Event Listeners
 document.addEventListener('DOMContentLoaded', function() {
+    // Initialize role-based UI
+    updateUIBasedOnRole();
+    
     // Navigation event listeners
     document.querySelectorAll('.nav-btn').forEach(btn => {
         btn.addEventListener('click', () => {

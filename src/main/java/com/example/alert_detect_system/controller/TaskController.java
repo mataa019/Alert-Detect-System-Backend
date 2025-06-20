@@ -206,6 +206,16 @@ public class TaskController {
         }
     }
     
+    /**
+     * Get database tasks by assignee
+     * GET /api/tasks/by-assignee/{assignee}
+     */
+    @GetMapping("/by-assignee/{assignee}")
+    public ResponseEntity<List<TaskModel>> getTasksByAssignee(@PathVariable String assignee) {
+        List<TaskModel> tasks = taskService.getTasksByAssignee(assignee);
+        return ResponseEntity.ok(tasks);
+    }
+    
     // DTO for task approval
     public static class ApprovalTaskRequest {
         private boolean approved;

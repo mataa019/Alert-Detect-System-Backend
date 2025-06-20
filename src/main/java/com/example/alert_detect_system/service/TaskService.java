@@ -113,4 +113,11 @@ public class TaskService {
             .filter(task -> taskTitle.equals(task.getTitle()))
             .toList();
     }
+    
+    /**
+     * Get tasks by assignee (alias for getMyTasksFromDB for consistency with API)
+     */
+    public List<TaskModel> getTasksByAssignee(String assignee) {
+        return getMyTasksFromDB(assignee);
+    }
 }
