@@ -1048,12 +1048,22 @@ async function createCase(event) {
     console.log('Request body:', requestBody);
     
     const editingCaseId = event.target.dataset.editingCaseId;
+    const editMode = event.target.dataset.editMode;
     
     try {
         let result;
         let message;
         
-        if (editingCaseId) {
+        if (editingCaseId && editMode === 'update') {
+            console.log('Updating case:', editingCaseId);
+            // General case editing/updating
+            result = await apiRequest(`/cases/${editingCaseId}?action=edit`, {
+                method: 'PUT',
+                body: JSON.stringify(requestBody)
+            });
+            message = `Case updated successfully! Case Number: ${result.caseNumber}`;
+            
+        } else if (editingCaseId) {
             console.log('Completing case:', editingCaseId);
             // User Story 2: Complete case creation
             result = await apiRequest(`/cases/${editingCaseId}?action=complete`, {
@@ -1112,6 +1122,7 @@ function resetForm() {
     const form = document.getElementById('case-form');
     form.reset();
     form.removeAttribute('data-editing-case-id');
+    form.removeAttribute('data-edit-mode');
     
     clearFormErrors();
     clearAlerts();

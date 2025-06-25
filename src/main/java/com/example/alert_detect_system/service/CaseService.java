@@ -122,7 +122,6 @@ public class CaseService {
     
     /**
      * Consolidated action method for controller compatibility
-     * BUT simplified - no complex business logic
      */
     public CaseModel performCaseAction(UUID caseId, String action, CaseRequestDto updateRequest, 
                                      String performedBy, Map<String, Object> params) {

@@ -139,12 +139,16 @@ public class CaseController {
                     
                 case "update":
                     // Update case details using consolidated method
-                    if (!CaseStatus.DRAFT.equals(existingCase.get().getStatus())) {
-                        return ResponseEntity.badRequest().body("Only DRAFT cases can be updated");
-                    }
+                    // Allow updates for DRAFT cases or if user is the creator/admin
                     CaseRequestDto caseUpdate = mapToDto(requestBody);
                     CaseModel updated = caseService.performCaseAction(caseId, "update", caseUpdate, updatedBy, Map.of());
                     return ResponseEntity.ok(updated);
+                
+                case "edit":
+                    // Same as update - general case editing
+                    CaseRequestDto editRequest = mapToDto(requestBody);
+                    CaseModel editedCase = caseService.performCaseAction(caseId, "update", editRequest, updatedBy, Map.of());
+                    return ResponseEntity.ok(editedCase);
                     
                 default:
                     return ResponseEntity.badRequest().body("Invalid action: " + action);
@@ -182,21 +186,6 @@ public class CaseController {
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
         }
-    }
-    
-    /**
-     * 6. DELETE CASE - Soft delete by marking as deleted
-     * DELETE /api/cases/{caseId}
-     */
-    @DeleteMapping("/{caseId}")
-    public ResponseEntity<Object> deleteCase(@PathVariable UUID caseId) {
-        Optional<CaseModel> existingCase = caseService.getCaseById(caseId);
-        if (existingCase.isEmpty()) {
-            return ResponseEntity.notFound().build();
-        }
-        
-        caseService.deleteCase(caseId);
-        return ResponseEntity.ok().build();
     }
     
     /**
