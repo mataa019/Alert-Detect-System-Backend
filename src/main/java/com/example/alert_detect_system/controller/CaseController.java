@@ -119,7 +119,15 @@ public class CaseController {
                     
                 case "approve":
                     // Approve/reject case using consolidated method
-                    boolean approved = (Boolean) requestBody.getOrDefault("approved", false);
+                    Object approvedObj = requestBody.getOrDefault("approved", false);
+                    boolean approved;
+                    if (approvedObj instanceof Boolean) {
+                        approved = (Boolean) approvedObj;
+                    } else if (approvedObj instanceof String) {
+                        approved = Boolean.parseBoolean((String) approvedObj);
+                    } else {
+                        approved = false;
+                    }
                     String comments = (String) requestBody.getOrDefault("comments", "");
                     Map<String, Object> approvalParams = Map.of("approved", approved, "comments", comments);
                     CaseModel approvedCase = caseService.performCaseAction(caseId, "approve", null, updatedBy, approvalParams);
@@ -212,6 +220,22 @@ public class CaseController {
             error.put("error", "Error deleting case: " + e.getMessage());
             return ResponseEntity.internalServerError().body(error);
         }
+    }
+
+    /**
+     * 7. GET USER ROLE (mocked for demo)
+     * GET /api/user/role?user=username
+     */
+    @GetMapping("/user/role")
+    public ResponseEntity<Map<String, String>> getUserRole(@RequestParam String user) {
+        // Mock logic: 'admin' user is Admin, others are Analyst
+        String role = "analyst";
+        if ("admin".equalsIgnoreCase(user)) {
+            role = "admin";
+        }
+        Map<String, String> response = new HashMap<>();
+        response.put("role", role);
+        return ResponseEntity.ok(response);
     }
 
     // Helper method to convert Map to DTO

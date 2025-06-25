@@ -801,8 +801,7 @@ async function showTaskDetails(taskId) {
 // Approval Functions
 async function loadApprovals() {
     try {
-        // Load both pending and completed approvals
-        await loadApprovalTasks();
+        // Only load completed approvals (do not load pending approvals)
         await loadCompletedApprovals();
     } catch (error) {
         console.error('Error loading approvals:', error);

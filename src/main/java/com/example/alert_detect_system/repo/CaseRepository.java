@@ -10,8 +10,6 @@ import org.springframework.stereotype.Repository;
 
 import com.example.alert_detect_system.Model.CaseModel;
 import com.example.alert_detect_system.Model.CaseStatus;
-
-import jakarta.persistence.Id;
 @Repository
 public interface CaseRepository extends JpaRepository<CaseModel, UUID> {
     Optional<CaseModel> findByCaseNumber(String caseNumber);
