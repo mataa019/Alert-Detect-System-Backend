@@ -2,6 +2,7 @@ package com.example.alert_detect_system.service;
 
 import java.time.LocalDateTime;
 import java.util.List;
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -92,36 +93,39 @@ public class CaseService {
         return savedCase;
     }
     
-    public CaseModel updateCaseStatus(UUID caseId, CaseStatus newStatus, String updatedBy) {
+    /**
+     * Consolidated action-based case update method
+     * Handles: update, complete, approve, status changes
+     */
+    public CaseModel performCaseAction(UUID caseId, String action, CaseRequestDto updateRequest, 
+                                     String performedBy, Map<String, Object> params) {
+        logger.info("Performing action '{}' on case: {} by user: {}", action, caseId, performedBy);
+        
         Optional<CaseModel> caseOpt = caseRepository.findById(caseId);
         if (caseOpt.isEmpty()) {
             throw new IllegalArgumentException("Case not found with ID: " + caseId);
         }
         
         CaseModel existingCase = caseOpt.get();
-        CaseStatus oldStatus = existingCase.getStatus();
         
-        existingCase.setStatus(newStatus);
-        existingCase.setUpdatedAt(LocalDateTime.now());
-        
-        CaseModel updatedCase = caseRepository.save(existingCase);
-        
-        // Log status change
-        auditService.logCaseStatusChange(caseId, updatedBy, oldStatus.toString(), newStatus.toString());
-          return updatedCase;
+        switch (action.toLowerCase()) {
+            case "update":
+                return performUpdate(existingCase, updateRequest, performedBy);
+            case "complete":
+                return performComplete(existingCase, updateRequest, performedBy);
+            case "approve":
+                boolean approved = (Boolean) params.getOrDefault("approved", false);
+                String comments = (String) params.getOrDefault("comments", "");
+                return performApproval(existingCase, approved, comments, performedBy);
+            case "status":
+                CaseStatus newStatus = (CaseStatus) params.get("status");
+                return performStatusUpdate(existingCase, newStatus, performedBy);
+            default:
+                throw new IllegalArgumentException("Invalid action: " + action);
+        }
     }
     
-    public CaseModel updateCase(UUID caseId, CaseRequestDto caseUpdate, String updatedBy) {
-        logger.info("Updating case with ID: {} by user: {}", caseId, updatedBy);
-        
-        // Get existing case
-        Optional<CaseModel> caseOpt = caseRepository.findById(caseId);
-        if (caseOpt.isEmpty()) {
-            throw new IllegalArgumentException("Case not found with ID: " + caseId);
-        }
-        
-        CaseModel existingCase = caseOpt.get();
-        
+    private CaseModel performUpdate(CaseModel existingCase, CaseRequestDto caseUpdate, String updatedBy) {
         // Validate that case is in DRAFT status
         if (!CaseStatus.DRAFT.equals(existingCase.getStatus())) {
             throw new IllegalArgumentException("Only DRAFT cases can be updated");
@@ -131,35 +135,210 @@ public class CaseService {
         validateCaseRequest(caseUpdate);
         
         // Update case fields
-        if (caseUpdate.getCaseType() != null) {
-            existingCase.setCaseType(caseUpdate.getCaseType());
-        }
-        if (caseUpdate.getPriority() != null) {
-            existingCase.setPriority(caseUpdate.getPriority());
-        }
-        if (caseUpdate.getDescription() != null) {
-            existingCase.setDescription(caseUpdate.getDescription());
-        }        if (caseUpdate.getRiskScore() != null) {
-            existingCase.setRiskScore(caseUpdate.getRiskScore());
-        }
-        // Note: CustomerDetails not available in CaseRequestDto, would need separate DTO for updates
-        
+        updateCaseFields(existingCase, caseUpdate);
         existingCase.setUpdatedAt(LocalDateTime.now());
         
         // Check if case is now complete and should be moved to PENDING_CASE_CREATION_APPROVAL
         if (isCaseComplete(existingCase)) {
             existingCase.setStatus(CaseStatus.PENDING_CASE_CREATION_APPROVAL);
-            auditService.logCaseStatusChange(caseId, updatedBy, "DRAFT", "PENDING_CASE_CREATION_APPROVAL");
+            auditService.logCaseStatusChange(existingCase.getId(), updatedBy, "DRAFT", "PENDING_CASE_CREATION_APPROVAL");
         }
         
         CaseModel savedCase = caseRepository.save(existingCase);
         
         // Log case update
-        auditService.logCaseAction(caseId, "CASE_UPDATED", updatedBy, 
+        auditService.logCaseAction(existingCase.getId(), "CASE_UPDATED", updatedBy, 
             "Case details updated and validation completed");
         
-        logger.info("Case updated successfully: {}", caseId);
+        logger.info("Case updated successfully: {}", existingCase.getId());
         return savedCase;
+    }
+    
+    private CaseModel performComplete(CaseModel existingCase, CaseRequestDto updateRequest, String updatedBy) {
+        // Validate that only DRAFT cases can be completed
+        if (existingCase.getStatus() != CaseStatus.DRAFT) {
+            throw new IllegalStateException("Only DRAFT cases can be completed. Current status: " + existingCase.getStatus());
+        }
+        
+        // Update case with new information
+        updateCaseFields(existingCase, updateRequest);
+        
+        // Validate the updated case
+        validateCompleteCaseRequest(updateRequest);
+        
+        // Determine new status based on approval requirements
+        boolean requiresApproval = requiresCaseCreationApproval(existingCase);
+        if (requiresApproval) {
+            existingCase.setStatus(CaseStatus.PENDING_CASE_CREATION_APPROVAL);
+        } else {
+            existingCase.setStatus(CaseStatus.READY_FOR_ASSIGNMENT);
+        }
+        
+        existingCase.setUpdatedBy(updatedBy);
+        existingCase.setUpdatedAt(LocalDateTime.now());
+        
+        // Save updated case
+        CaseModel savedCase = caseRepository.save(existingCase);
+        
+        // Log audit
+        auditService.logCaseAction(savedCase.getId(), "CASE_COMPLETED", updatedBy, 
+            String.format("Case completion finished. New status: %s", savedCase.getStatus()));
+        
+        // If requires approval, create approval task
+        if (requiresApproval) {
+            taskService.createTask(
+                "Approve Case Creation", 
+                "Review and approve case creation for case: " + savedCase.getCaseNumber(),
+                savedCase.getId(),
+                "admin", // Assign to admin group
+                "HIGH"
+            );
+            auditService.logCaseAction(savedCase.getId(), "APPROVAL_TASK_CREATED", updatedBy, 
+                "Approval task created for supervisor review");
+        } else {
+            // Start workflow immediately if no approval needed
+            try {
+                String processInstanceId = caseWorkflowService.startCaseWorkflow(savedCase);
+                savedCase.setProcessInstanceId(processInstanceId);
+                savedCase = caseRepository.save(savedCase);
+                
+                auditService.logCaseAction(savedCase.getId(), "WORKFLOW_STARTED", updatedBy, 
+                    "Investigation workflow started automatically");
+            } catch (Exception e) {
+                logger.error("Failed to start workflow for case: {}", savedCase.getId(), e);
+            }
+        }
+        
+        logger.info("Case completion processed successfully: {}", savedCase.getId());
+        return savedCase;
+    }
+    
+    private CaseModel performApproval(CaseModel existingCase, boolean approved, String comments, String approvedBy) {
+        // Validate that only PENDING_CASE_CREATION_APPROVAL cases can be approved
+        if (existingCase.getStatus() != CaseStatus.PENDING_CASE_CREATION_APPROVAL) {
+            throw new IllegalStateException("Only pending approval cases can be approved. Current status: " + existingCase.getStatus());
+        }
+        
+        if (approved) {
+            // Approve case - move to READY_FOR_ASSIGNMENT
+            existingCase.setStatus(CaseStatus.READY_FOR_ASSIGNMENT);
+            existingCase.setUpdatedBy(approvedBy);
+            existingCase.setUpdatedAt(LocalDateTime.now());
+            
+            // Save case
+            CaseModel savedCase = caseRepository.save(existingCase);
+            
+            // Log approval
+            auditService.logCaseAction(savedCase.getId(), "CASE_APPROVED", approvedBy, 
+                String.format("Case approved by supervisor. Comments: %s", comments != null ? comments : "No comments"));
+            
+            // Complete approval task and start investigation workflow
+            try {
+                taskService.completeTaskByCaseIdAndType(savedCase.getId(), "Approve Case Creation", approvedBy);
+                
+                // Start BPMN workflow
+                String processInstanceId = caseWorkflowService.startCaseWorkflow(savedCase);
+                savedCase.setProcessInstanceId(processInstanceId);
+                savedCase = caseRepository.save(savedCase);
+                
+                auditService.logCaseAction(savedCase.getId(), "WORKFLOW_STARTED", approvedBy, 
+                    "Investigation workflow started after approval");
+                    
+            } catch (Exception e) {
+                logger.error("Failed to start workflow after approval for case: {}", savedCase.getId(), e);
+            }
+            
+            return savedCase;
+            
+        } else {
+            // Reject case - move back to DRAFT for revision
+            existingCase.setStatus(CaseStatus.DRAFT);
+            existingCase.setUpdatedBy(approvedBy);
+            existingCase.setUpdatedAt(LocalDateTime.now());
+            
+            // Save case
+            CaseModel savedCase = caseRepository.save(existingCase);
+            
+            // Log rejection
+            auditService.logCaseAction(savedCase.getId(), "CASE_REJECTED", approvedBy, 
+                String.format("Case rejected by supervisor. Comments: %s", comments != null ? comments : "No comments"));
+            
+            // Complete approval task
+            try {
+                taskService.completeTaskByCaseIdAndType(savedCase.getId(), "Approve Case Creation", approvedBy);
+            } catch (Exception e) {
+                logger.error("Failed to complete approval task for rejected case: {}", savedCase.getId(), e);
+            }
+            
+            return savedCase;
+        }
+    }
+    
+    private CaseModel performStatusUpdate(CaseModel existingCase, CaseStatus newStatus, String updatedBy) {
+        CaseStatus oldStatus = existingCase.getStatus();
+        
+        existingCase.setStatus(newStatus);
+        existingCase.setUpdatedAt(LocalDateTime.now());
+        
+        CaseModel updatedCase = caseRepository.save(existingCase);
+        
+        // Log status change
+        auditService.logCaseStatusChange(existingCase.getId(), updatedBy, oldStatus.toString(), newStatus.toString());
+        return updatedCase;
+    }
+    
+    // Legacy method for backward compatibility - delegates to new action-based method
+    @Deprecated
+    public CaseModel updateCaseStatus(UUID caseId, CaseStatus newStatus, String updatedBy) {
+        Map<String, Object> params = Map.of("status", newStatus);
+        return performCaseAction(caseId, "status", null, updatedBy, params);
+    }
+    
+    // Legacy method for backward compatibility - delegates to new action-based method
+    @Deprecated
+    public CaseModel updateCase(UUID caseId, CaseRequestDto caseUpdate, String updatedBy) {
+        return performCaseAction(caseId, "update", caseUpdate, updatedBy, Map.of());
+    }
+    
+    // Legacy method for backward compatibility - delegates to new action-based method
+    @Deprecated
+    public CaseModel completeCaseCreation(UUID caseId, CaseRequestDto updateRequest, String updatedBy) {
+        return performCaseAction(caseId, "complete", updateRequest, updatedBy, Map.of());
+    }
+    
+    // Legacy method for backward compatibility - delegates to new action-based method
+    @Deprecated
+    public CaseModel approveCaseCreation(UUID caseId, boolean approved, String comments, String approvedBy) {
+        Map<String, Object> params = Map.of("approved", approved, "comments", comments);
+        return performCaseAction(caseId, "approve", null, approvedBy, params);
+    }
+    
+    // Helper method to update case fields from DTO
+    private void updateCaseFields(CaseModel existingCase, CaseRequestDto updateRequest) {
+        if (updateRequest.getCaseType() != null) {
+            existingCase.setCaseType(updateRequest.getCaseType());
+        }
+        if (updateRequest.getPriority() != null) {
+            existingCase.setPriority(updateRequest.getPriority());
+        }
+        if (updateRequest.getDescription() != null) {
+            existingCase.setDescription(updateRequest.getDescription());
+        }
+        if (updateRequest.getRiskScore() != null) {
+            existingCase.setRiskScore(updateRequest.getRiskScore());
+        }
+        if (updateRequest.getEntity() != null) {
+            existingCase.setEntity(updateRequest.getEntity());
+        }
+        if (updateRequest.getAlertId() != null) {
+            existingCase.setAlertId(updateRequest.getAlertId());
+        }
+        if (updateRequest.getTypology() != null) {
+            existingCase.setTypology(updateRequest.getTypology());
+        }
+        if (updateRequest.getAssignee() != null) {
+            existingCase.setAssignee(updateRequest.getAssignee());
+        }
     }
     
     private boolean isCaseComplete(CaseModel caseModel) {
@@ -229,55 +408,11 @@ public class CaseService {
     
     /**
      * User Story 1 & 2: Enhanced case completion with proper workflow
+     * @deprecated Use performCaseAction with action="complete" instead
      */
+    @Deprecated
     public CaseModel completeCaseCreation(UUID caseId, CaseRequestDto updateRequest, String updatedBy) {
-        logger.info("Completing case creation for case: {} by user: {}", caseId, updatedBy);
-        
-        Optional<CaseModel> caseOpt = caseRepository.findById(caseId);
-        if (caseOpt.isEmpty()) {
-            throw new IllegalArgumentException("Case not found with ID: " + caseId);
-        }
-        
-        CaseModel existingCase = caseOpt.get();
-        
-        // Validate that only DRAFT cases can be completed
-        if (existingCase.getStatus() != CaseStatus.DRAFT) {
-            throw new IllegalStateException("Only DRAFT cases can be completed. Current status: " + existingCase.getStatus());
-        }
-        
-        // Update case with new information
-        updateCaseFields(existingCase, updateRequest);
-        
-        // Validate the updated case
-        validateCompleteCaseRequest(updateRequest);
-        
-        // Determine new status based on approval requirements
-        boolean requiresApproval = requiresCaseCreationApproval(existingCase);
-        if (requiresApproval) {
-            existingCase.setStatus(CaseStatus.PENDING_CASE_CREATION_APPROVAL);
-        } else {
-            existingCase.setStatus(CaseStatus.READY_FOR_ASSIGNMENT);
-        }
-        
-        existingCase.setUpdatedBy(updatedBy);
-        existingCase.setUpdatedAt(LocalDateTime.now());
-        
-        // Save updated case
-        CaseModel savedCase = caseRepository.save(existingCase);
-        
-        // Log audit
-        auditService.logCaseAction(savedCase.getId(), "CASE_COMPLETED", updatedBy, 
-            String.format("Case completion finished. New status: %s", savedCase.getStatus()));
-        
-        // Close "Complete Case Creation" task and create next task
-        try {
-            taskService.completeTaskByCaseIdAndType(caseId, "Complete Case Creation", updatedBy);
-            createNextTaskAfterCompletion(savedCase, updatedBy);
-        } catch (Exception e) {
-            logger.error("Failed to handle task transition for case: {}", savedCase.getId(), e);
-        }
-        
-        return savedCase;
+        return performCaseAction(caseId, "complete", updateRequest, updatedBy, Map.of());
     }
     
     /**
@@ -406,90 +541,6 @@ public class CaseService {
         }
     }
     
-    /**
-     * Approve or reject case creation (Supervisor function)
-     */
-    public CaseModel approveCaseCreation(UUID caseId, boolean approved, String comments, String approvedBy) {
-        logger.info("Processing case approval for case: {} by supervisor: {}", caseId, approvedBy);
-        
-        Optional<CaseModel> caseOpt = caseRepository.findById(caseId);
-        if (caseOpt.isEmpty()) {
-            throw new IllegalArgumentException("Case not found with ID: " + caseId);
-        }
-        
-        CaseModel existingCase = caseOpt.get();
-        
-        // Validate that only PENDING_CASE_CREATION_APPROVAL cases can be approved
-        if (existingCase.getStatus() != CaseStatus.PENDING_CASE_CREATION_APPROVAL) {
-            throw new IllegalStateException("Only pending approval cases can be approved. Current status: " + existingCase.getStatus());
-        }
-        
-        if (approved) {
-            // Approve case - move to READY_FOR_ASSIGNMENT
-            existingCase.setStatus(CaseStatus.READY_FOR_ASSIGNMENT);
-            existingCase.setUpdatedBy(approvedBy);
-            existingCase.setUpdatedAt(LocalDateTime.now());
-            
-            // Save case
-            CaseModel savedCase = caseRepository.save(existingCase);
-            
-            // Log approval
-            auditService.logCaseAction(savedCase.getId(), "CASE_APPROVED", approvedBy, 
-                String.format("Case approved by supervisor. Comments: %s", comments != null ? comments : "No comments"));
-            
-            // Complete approval task and start investigation workflow
-            try {
-                taskService.completeTaskByCaseIdAndType(caseId, "Approve Case Creation", approvedBy);
-                
-                // Start BPMN workflow
-                String processInstanceId = caseWorkflowService.startCaseWorkflow(savedCase);
-                savedCase.setProcessInstanceId(processInstanceId);
-                savedCase = caseRepository.save(savedCase);
-                
-                auditService.logCaseAction(savedCase.getId(), "WORKFLOW_STARTED", approvedBy, 
-                    "Investigation workflow started after approval");
-                    
-            } catch (Exception e) {
-                logger.error("Failed to start workflow after approval for case: {}", savedCase.getId(), e);
-            }
-            
-            return savedCase;
-            
-        } else {
-            // Reject case - move back to DRAFT for revision
-            existingCase.setStatus(CaseStatus.DRAFT);
-            existingCase.setUpdatedBy(approvedBy);
-            existingCase.setUpdatedAt(LocalDateTime.now());
-            
-            // Save case
-            CaseModel savedCase = caseRepository.save(existingCase);
-            
-            // Log rejection
-            auditService.logCaseAction(savedCase.getId(), "CASE_REJECTED", approvedBy, 
-                String.format("Case rejected by supervisor. Comments: %s", comments != null ? comments : "No comments"));
-            
-            // Complete approval task and create new "Complete Case Creation" task
-            try {
-                taskService.completeTaskByCaseIdAndType(caseId, "Approve Case Creation", approvedBy);
-                
-                taskService.createTask(
-                    "Complete Case Creation",
-                    "Case was rejected. Please revise and resubmit. Rejection reason: " + (comments != null ? comments : "No reason provided"),
-                    savedCase.getId(),
-                    savedCase.getCreatedBy(), // Assign back to original creator
-                    "HIGH" // High priority since it was rejected
-                );
-                
-                auditService.logCaseAction(savedCase.getId(), "TASK_CREATED", approvedBy, 
-                    "Complete Case Creation task created after rejection");
-                    
-            } catch (Exception e) {
-                logger.error("Failed to create revision task after rejection for case: {}", savedCase.getId(), e);
-            }
-            
-            return savedCase;
-        }
-    }
     
     // ...existing code...
 }
