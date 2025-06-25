@@ -440,12 +440,12 @@ function displayCases(cases) {
                         <i class="fas fa-edit"></i> Complete Case
                     </button>` : ''
                 }
-                ${(caseItem.status === 'DRAFT' || caseItem.createdBy === currentUser || hasPermission('VIEW_ALL_CASES')) ? 
+                ${canEditCase(caseItem) ? 
                     `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); editCaseDetails('${caseItem.id}')">
                         <i class="fas fa-edit"></i> Edit
                     </button>` : ''
                 }
-                ${(caseItem.status === 'DRAFT' || caseItem.createdBy === currentUser || hasPermission('VIEW_ALL_CASES')) ? 
+                ${canEditCase(caseItem) ? 
                     `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteCase('${caseItem.id}', '${caseItem.caseNumber}')">
                         <i class="fas fa-trash"></i> Delete
                     </button>` : ''
@@ -1245,3 +1245,20 @@ async function deleteCase(caseId, caseNumber) {
         showAlert(`Error deleting case: ${error.message}`);
     }
 }
+
+// Helper function to check if user can edit/delete a case
+function canEditCase(caseItem) {
+    return caseItem.status === 'DRAFT' || 
+           caseItem.createdBy === currentUser || 
+           hasPermission('VIEW_ALL_CASES');
+}
+
+// Test function to verify UI is working
+function testUI() {
+    console.log('Testing UI...');
+    alert('UI is responding to clicks!');
+    return true;
+}
+
+// Add global test function
+window.testUI = testUI;
