@@ -22,6 +22,7 @@ import com.example.alert_detect_system.Model.TaskModel;
 import com.example.alert_detect_system.dto.TaskAssignDto;
 import com.example.alert_detect_system.service.CaseService;
 import com.example.alert_detect_system.service.TaskService;
+import com.example.alert_detect_system.service.AuditService;
 
 @RestController
 @RequestMapping("/api/tasks")
@@ -33,6 +34,9 @@ public class TaskController {
     
     @Autowired
     private CaseService caseService;
+    
+    @Autowired
+    private AuditService auditService;
     
     // Get my tasks
     @GetMapping("/my/{assignee}")
@@ -227,17 +231,18 @@ public class TaskController {
             if (approvedBy == null || approvedBy.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Approved by is required"));
             }
-            
             // Get the task to validate it exists
             Task task = taskService.getTaskById(taskId);
             if (task == null) {
                 return ResponseEntity.notFound().build();
             }
-            
             // Get case ID - simple approach
             UUID caseId = UUID.fromString(task.getProcessVariables().get("caseId").toString());
             Map<String, Object> response = new HashMap<>();
-            
+            String originalCreator = null;
+            if (task.getProcessVariables().containsKey("originalCreator")) {
+                originalCreator = task.getProcessVariables().get("originalCreator").toString();
+            }
             if (request.isApproved()) {
                 // APPROVAL FLOW - Simple and straightforward
                 // 1. Complete the approval task
@@ -245,16 +250,18 @@ public class TaskController {
                 variables.put("approved", true);
                 variables.put("comments", request.getComments());
                 taskService.completeTask(taskId, variables);
-                
                 // 2. Update case status to READY_FOR_ASSIGNMENT
                 caseService.updateCaseStatus(caseId, CaseStatus.READY_FOR_ASSIGNMENT, approvedBy);
-                
                 // 3. Create "Investigate Case" task for investigations group
                 taskService.createInvestigateTask(caseId, "investigations");
-                
+                // 4. Log the approval action for the analyst
+                if (originalCreator != null) {
+                    auditService.logCaseAction(caseId, "CASE_APPROVED", approvedBy, "Case approved and assigned to investigations. Notified analyst: " + originalCreator);
+                } else {
+                    auditService.logCaseAction(caseId, "CASE_APPROVED", approvedBy, "Case approved and assigned to investigations.");
+                }
                 response.put("message", "Case approved successfully and assigned to investigations team");
                 response.put("status", "APPROVED");
-                
             } else {
                 // REJECTION FLOW - Simple and straightforward  
                 // 1. Complete the approval task
@@ -262,25 +269,23 @@ public class TaskController {
                 variables.put("approved", false);
                 variables.put("comments", request.getComments());
                 taskService.completeTask(taskId, variables);
-                
                 // 2. Update case status back to DRAFT
                 caseService.updateCaseStatus(caseId, CaseStatus.DRAFT, approvedBy);
-                
                 // 3. Create "Complete Case Creation" task for original creator
-                String originalCreator = task.getProcessVariables().get("originalCreator").toString();
-                taskService.createCompleteTaskForUser(caseId, originalCreator);
-                
+                if (originalCreator != null) {
+                    taskService.createCompleteTaskForUser(caseId, originalCreator);
+                    auditService.logCaseAction(caseId, "CASE_REJECTED", approvedBy, "Case rejected and returned to analyst: " + originalCreator);
+                } else {
+                    auditService.logCaseAction(caseId, "CASE_REJECTED", approvedBy, "Case rejected and returned to analyst.");
+                }
                 response.put("message", "Case rejected and returned to creator for completion");
                 response.put("status", "REJECTED");
             }
-            
             // Add audit info
             response.put("approvedBy", approvedBy);
             response.put("comments", request.getComments());
             response.put("caseId", caseId.toString());
-            
             return ResponseEntity.ok(response);
-            
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", "Error processing approval: " + e.getMessage()));
         }
