@@ -185,6 +185,30 @@ public class CaseService {
             .toList();
     }
 
+    /**
+     * Delete a case (with validation)
+     * Both admin and analyst can delete their own cases
+     */
+    public void deleteCase(UUID caseId, String deletedBy) {
+        logger.info("Deleting case: {} by user: {}", caseId, deletedBy);
+        
+        CaseModel existingCase = getCaseById(caseId)
+            .orElseThrow(() -> new IllegalArgumentException("Case not found with ID: " + caseId));
+        
+        // Business rule: Only allow deletion of DRAFT cases or cases created by the user
+        if (existingCase.getStatus() != CaseStatus.DRAFT && !existingCase.getCreatedBy().equals(deletedBy)) {
+            throw new IllegalArgumentException("Can only delete DRAFT cases or cases you created");
+        }
+        
+        // Audit before deletion
+        auditService.logCaseAction(caseId, "CASE_DELETED", deletedBy, 
+            "Case deleted: " + existingCase.getCaseNumber());
+        
+        caseRepository.delete(existingCase);
+        
+        logger.info("Case deleted successfully: {}", caseId);
+    }
+
     // ========== PRIVATE HELPER METHODS (Simple Data Operations Only) ==========
     
     private void updateCaseFields(CaseModel caseModel, CaseRequestDto updateRequest) {
