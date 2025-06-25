@@ -7,7 +7,8 @@
     <link rel="stylesheet" href="css/styles.css">
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css" rel="stylesheet">
 </head>
-<body>    <!-- Header -->
+<body>
+    <!-- Header -->
     <header class="header">
         <div class="header-content">
             <div class="logo">
@@ -24,9 +25,6 @@
                 <button class="nav-btn" data-section="tasks">
                     <i class="fas fa-tasks"></i> Tasks
                 </button>
-                <button class="nav-btn" data-section="approvals">
-                    <i class="fas fa-gavel"></i> Approvals
-                </button>
                 <button class="nav-btn" data-section="create-case">
                     <i class="fas fa-plus"></i> Create Case
                 </button>
@@ -36,10 +34,10 @@
                     <i class="fas fa-user"></i>
                     <span>John Analyst</span>
                     <span class="role-badge role-analyst">ANALYST</span>
-                </div>                <div class="user-switcher">
+                </div>
+                <div class="user-switcher">
                     <select id="user-select" onchange="switchUser(this.value)">
                         <option value="analyst">John Analyst (Analyst)</option>
-                        <option value="admin">Sarah Admin (Admin)</option>
                     </select>
                 </div>
             </div>
@@ -63,7 +61,6 @@
                     <i class="fas fa-refresh"></i> Refresh
                 </button>
             </div>
-            
             <div class="stats-grid">
                 <div class="stat-card">
                     <div class="stat-icon">
@@ -74,7 +71,6 @@
                         <p>Total Cases</p>
                     </div>
                 </div>
-                
                 <div class="stat-card">
                     <div class="stat-icon">
                         <i class="fas fa-edit"></i>
@@ -84,7 +80,6 @@
                         <p>Draft Cases</p>
                     </div>
                 </div>
-                
                 <div class="stat-card">
                     <div class="stat-icon">
                         <i class="fas fa-clock"></i>
@@ -94,7 +89,6 @@
                         <p>Pending Approval</p>
                     </div>
                 </div>
-                
                 <div class="stat-card">
                     <div class="stat-icon">
                         <i class="fas fa-tasks"></i>
@@ -105,7 +99,6 @@
                     </div>
                 </div>
             </div>
-
             <div class="dashboard-content">
                 <div class="dashboard-section">
                     <h3>Recent Cases</h3>
@@ -136,28 +129,22 @@
                     </button>
                 </div>
             </div>
-            
             <div id="cases-container" class="cases-container">
                 <!-- Cases will be loaded here -->
             </div>
-        </section>        <!-- Tasks Section -->
+        </section>
+
+        <!-- Tasks Section -->
         <section id="tasks" class="section">
             <div class="section-header">
-                <h2><i class="fas fa-tasks"></i> Tasks</h2>                <div class="header-actions">
-                    <div class="assignee-input-group" id="assignee-group">
-                        <label for="assignee-input">View tasks for:</label>
-                        <select id="assignee-input">
-                            <option value="all">All Tasks</option>
-                            <option value="analyst">Analyst Tasks</option>
-                            <option value="admin">Admin Tasks</option>
-                        </select>
-                    </div>
+                <h2><i class="fas fa-tasks"></i> Tasks</h2>
+                <div class="header-actions">
+                    <!-- Analyst only sees their own tasks, so no assignee input -->
                     <button class="btn btn-secondary" onclick="loadTasks()">
-                        <i class="fas fa-refresh"></i> Load Tasks
+                        <i class="fas fa-refresh"></i> Load My Tasks
                     </button>
                 </div>
             </div>
-            
             <div id="tasks-container" class="tasks-container">
                 <!-- Tasks will be loaded here -->
             </div>
@@ -168,7 +155,6 @@
             <div class="section-header">
                 <h2><i class="fas fa-plus"></i> Create New Case</h2>
             </div>
-            
             <div class="form-container">
                 <div class="mode-selector">
                     <label>Creation Mode:</label>
@@ -183,10 +169,8 @@
                         </label>
                     </div>
                 </div>
-
                 <form id="case-form" onsubmit="createCase(event)">
                     <div id="form-alerts" class="alerts"></div>
-                    
                     <div class="form-row">
                         <div class="form-group">
                             <label for="caseType">Case Type <span class="required-star" style="display: none;">*</span></label>
@@ -204,7 +188,6 @@
                             </select>
                             <span class="error-message"></span>
                         </div>
-                        
                         <div class="form-group">
                             <label for="priority">Priority <span class="required-star" style="display: none;">*</span></label>
                             <select id="priority" name="priority">
@@ -217,32 +200,27 @@
                             <span class="error-message"></span>
                         </div>
                     </div>
-                    
                     <div class="form-group">
                         <label for="description">Description <span class="required-star">*</span></label>
                         <textarea id="description" name="description" rows="4" placeholder="Enter case description..."></textarea>
                         <span class="error-message"></span>
                     </div>
-                    
                     <div class="form-row">
                         <div class="form-group">
                             <label for="riskScore">Risk Score (0-100) <span class="required-star" style="display: none;">*</span></label>
                             <input type="number" id="riskScore" name="riskScore" min="0" max="100" step="0.1" placeholder="Enter risk score">
                             <span class="error-message"></span>
                         </div>
-                        
                         <div class="form-group">
                             <label for="entity">Entity/Customer</label>
                             <input type="text" id="entity" name="entity" placeholder="Enter entity or customer name">
                         </div>
                     </div>
-                    
                     <div class="form-row">
                         <div class="form-group">
                             <label for="alertId">Alert ID</label>
                             <input type="text" id="alertId" name="alertId" placeholder="Enter alert reference ID">
                         </div>
-                        
                         <div class="form-group">
                             <label for="typology">Typology</label>
                             <select id="typology" name="typology">
@@ -254,7 +232,6 @@
                             </select>
                         </div>
                     </div>
-                    
                     <div class="form-actions">
                         <button type="submit" class="btn btn-primary" id="submit-btn">
                             <i class="fas fa-save"></i> Create Draft
@@ -264,31 +241,12 @@
                         </button>
                     </div>
                 </form>
-                  <div class="help-section">
+                <div class="help-section">
                     <h4><i class="fas fa-info-circle"></i> Creation Modes:</h4>
                     <ul>
                         <li><strong>Draft:</strong> Creates a case with minimal information. Only description is required.</li>
                         <li><strong>Complete:</strong> Creates a fully detailed case that will start the investigation workflow automatically.</li>
                     </ul>
-                    
-                    <div class="role-help" id="role-help">
-                        <!-- Role-specific help will be inserted here -->
-                    </div>
-                </div>
-            </div>        </section>
-
-        <!-- Approvals Section -->
-        <section id="approvals" class="section">
-            <div class="section-header">
-                <h2><i class="fas fa-gavel"></i> Case Approvals</h2>
-                <button class="btn btn-secondary" onclick="loadApprovals()">
-                    <i class="fas fa-refresh"></i> Refresh
-                </button>
-            </div>
-            
-            <div class="section-content">
-                <div id="approvals-container" class="case-list">
-                    <!-- Pending approvals will be loaded here -->
                 </div>
             </div>
         </section>
@@ -324,5 +282,11 @@
 
     <script src="js/app.js?v=1.2"></script>
     <script src="js/debug.js"></script>
+    <script>
+        // Ensure UI updates on user switch
+        document.getElementById('user-select').addEventListener('change', function() {
+            if (typeof switchUser === 'function') switchUser(this.value);
+        });
+    </script>
 </body>
 </html>
