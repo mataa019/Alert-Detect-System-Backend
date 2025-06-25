@@ -23,6 +23,8 @@ import com.example.alert_detect_system.Model.CaseModel;
 import com.example.alert_detect_system.Model.CaseStatus;
 import com.example.alert_detect_system.dto.CaseRequestDto;
 import com.example.alert_detect_system.service.CaseService;
+import com.example.alert_detect_system.service.TaskService;
+import com.example.alert_detect_system.service.AuditService;
 
 @RestController
 @RequestMapping("/api/cases")
@@ -31,6 +33,10 @@ public class CaseController {
     
     @Autowired
     private CaseService caseService;
+    @Autowired
+    private TaskService taskService;
+    @Autowired
+    private AuditService auditService;
     
     /**
      * 1. CREATE CASE - Single endpoint for all case creation
@@ -235,6 +241,45 @@ public class CaseController {
         Map<String, String> response = new HashMap<>();
         response.put("role", role);
         return ResponseEntity.ok(response);
+    }
+
+    /**
+     * ABANDON CASE endpoint
+     * PUT /api/cases/abandon/{caseId}
+     * Body: { "abandonedBy": "username", "reason": "..." }
+     */
+    @PutMapping("/abandon/{caseId}")
+    public ResponseEntity<?> abandonCase(
+            @PathVariable UUID caseId,
+            @RequestBody Map<String, Object> requestBody) {
+        try {
+            String abandonedBy = (String) requestBody.getOrDefault("abandonedBy", "user");
+            String reason = (String) requestBody.getOrDefault("reason", "No reason provided");
+            Optional<CaseModel> caseOpt = caseService.getCaseById(caseId);
+            if (caseOpt.isEmpty()) {
+                return ResponseEntity.notFound().build();
+            }
+            CaseModel caseModel = caseOpt.get();
+            if (caseModel.getStatus() != CaseStatus.DRAFT) {
+                return ResponseEntity.badRequest().body("Case must be in DRAFT status to abandon.");
+            }
+            if (!abandonedBy.equals(caseModel.getCreatedBy())) {
+                return ResponseEntity.status(403).body("Only the creator can abandon this draft case.");
+            }
+            // Update status to ABANDONED
+            caseService.updateCaseStatus(caseId, CaseStatus.ABANDONED, abandonedBy);
+            // Close associated draft task (Complete New Case)
+            taskService.closeDraftTaskForCase(caseId);
+            // Log audit event
+            auditService.logCaseAction(caseId, "CASE_ABANDONED", abandonedBy, "Reason: " + reason);
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Case abandoned successfully");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error abandoning case: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
     }
 
     // Helper method to convert Map to DTO

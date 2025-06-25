@@ -7,5 +7,6 @@ public enum CaseStatus {
     IN_INVESTIGATION,
     COMPLETED,
     CLOSED,
-    REJECTED
+    REJECTED,
+    ABANDONED
 }

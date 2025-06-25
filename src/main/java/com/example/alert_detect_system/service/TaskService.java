@@ -189,4 +189,19 @@ public class TaskService {
     public List<TaskModel> getApprovedApprovalTasks() {
         return taskRepository.findByTaskNameAndStatus("Approve Case Creation", "COMPLETED");
     }
+    
+    /**
+     * Close the draft ("Complete New Case") task for a case when abandoned
+     */
+    public void closeDraftTaskForCase(UUID caseId) {
+        List<TaskModel> tasks = taskRepository.findByCaseId(caseId);
+        for (TaskModel task : tasks) {
+            if (("Complete Case Creation".equalsIgnoreCase(task.getTaskName()) || "Complete New Case".equalsIgnoreCase(task.getTaskName()))
+                && "OPEN".equalsIgnoreCase(task.getStatus())) {
+                task.setStatus("COMPLETED");
+                task.setCompletedAt(java.time.LocalDateTime.now());
+                taskRepository.save(task);
+            }
+        }
+    }
 }
