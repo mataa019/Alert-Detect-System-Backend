@@ -281,9 +281,14 @@
         <section id="approvals" class="section">
             <div class="section-header">
                 <h2><i class="fas fa-gavel"></i> Case Approvals</h2>
-                <button class="btn btn-secondary" onclick="loadApprovals()">
-                    <i class="fas fa-refresh"></i> Refresh
-                </button>
+                <div class="header-actions">
+                    <span class="approval-counter" id="approval-counter" style="display: none;">
+                        <i class="fas fa-clock"></i> <span id="pending-count">0</span> Pending
+                    </span>
+                    <button class="btn btn-secondary" onclick="loadApprovals()">
+                        <i class="fas fa-sync-alt"></i> Refresh
+                    </button>
+                </div>
             </div>
             
             <div class="section-content">
