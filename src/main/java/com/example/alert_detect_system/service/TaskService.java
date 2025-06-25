@@ -182,4 +182,11 @@ public class TaskService {
         
         taskRepository.save(approvalTask);
     }
+    
+    /**
+     * Get approved approval tasks (for admin approvals view)
+     */
+    public List<TaskModel> getApprovedApprovalTasks() {
+        return taskRepository.findByTaskNameAndStatus("Approve Case Creation", "COMPLETED");
+    }
 }
