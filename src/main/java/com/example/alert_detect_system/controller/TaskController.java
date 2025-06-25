@@ -17,12 +17,11 @@ import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RequestMapping;
 import org.springframework.web.bind.annotation.RestController;
 
-import com.example.alert_detect_system.Model.TaskModel;
-import com.example.alert_detect_system.Model.CaseModel;
-import com.example.alert_detect_system.dto.TaskAssignDto;
-import com.example.alert_detect_system.service.TaskService;
-import com.example.alert_detect_system.service.CaseService;
 import com.example.alert_detect_system.Model.CaseStatus;
+import com.example.alert_detect_system.Model.TaskModel;
+import com.example.alert_detect_system.dto.TaskAssignDto;
+import com.example.alert_detect_system.service.CaseService;
+import com.example.alert_detect_system.service.TaskService;
 
 @RestController
 @RequestMapping("/api/tasks")
@@ -298,42 +297,6 @@ public class TaskController {
             return ResponseEntity.ok(pendingTasks);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
-        }
-    }
-
-    /**
-     * Test endpoint to simulate case completion and approval workflow
-     * POST /api/tasks/test-workflow/{caseId}
-     */
-    @PostMapping("/test-workflow/{caseId}")
-    public ResponseEntity<Map<String, Object>> testWorkflow(@PathVariable UUID caseId) {
-        try {
-            Map<String, Object> result = new HashMap<>();
-            
-            // 1. Check if case exists and is in DRAFT status
-            CaseModel caseModel = caseService.getCaseById(caseId).orElse(null);
-            if (caseModel == null) {
-                return ResponseEntity.notFound().build();
-            }
-            
-            result.put("originalStatus", caseModel.getStatus());
-            
-            // 2. Simulate case completion (moves to PENDING_CASE_CREATION_APPROVAL)
-            if (caseModel.getStatus() == CaseStatus.DRAFT) {
-                caseService.updateCaseStatus(caseId, CaseStatus.PENDING_CASE_CREATION_APPROVAL, "analyst");
-                taskService.createApprovalTask(caseId, "analyst");
-                result.put("step1", "Case moved to PENDING_CASE_CREATION_APPROVAL and approval task created");
-            }
-            
-            // 3. Get pending approval tasks
-            List<TaskModel> pendingTasks = taskService.getPendingApprovalTasks();
-            result.put("pendingApprovalTasks", pendingTasks.size());
-            
-            result.put("message", "Workflow test completed. Case is now ready for supervisor approval.");
-            return ResponseEntity.ok(result);
-            
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body(Map.of("error", "Error testing workflow: " + e.getMessage()));
         }
     }
 
