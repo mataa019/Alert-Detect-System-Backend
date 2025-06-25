@@ -1,6 +1,15 @@
 // API Configuration
 const API_BASE_URL = 'http://localhost:8080/api';
 
+// Version for cache busting
+console.log('Alert Detection System UI v1.2 - Loading...');
+
+// Add error handler for any JavaScript errors
+window.addEventListener('error', function(e) {
+    console.error('JavaScript Error:', e.error, e.filename, e.lineno);
+    alert('JavaScript Error: ' + e.message + ' at line ' + e.lineno);
+});
+
 // Global state
 let currentMode = 'draft';
 let allCases = [];
@@ -440,16 +449,12 @@ function displayCases(cases) {
                         <i class="fas fa-edit"></i> Complete Case
                     </button>` : ''
                 }
-                ${canEditCase(caseItem) ? 
-                    `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); editCaseDetails('${caseItem.id}')">
-                        <i class="fas fa-edit"></i> Edit
-                    </button>` : ''
-                }
-                ${canEditCase(caseItem) ? 
-                    `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteCase('${caseItem.id}', '${caseItem.caseNumber}')">
-                        <i class="fas fa-trash"></i> Delete
-                    </button>` : ''
-                }
+                <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); editCaseDetails('${caseItem.id}')">
+                    <i class="fas fa-edit"></i> Edit
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteCase('${caseItem.id}', '${caseItem.caseNumber}')">
+                    <i class="fas fa-trash"></i> Delete
+                </button>
                 <button class="btn btn-info btn-sm" onclick="event.stopPropagation(); showCaseDetails('${caseItem.id}')">
                     <i class="fas fa-eye"></i> View Details
                 </button>
@@ -1262,3 +1267,35 @@ function testUI() {
 
 // Add global test function
 window.testUI = testUI;
+
+// Initialize the application when DOM is loaded
+document.addEventListener('DOMContentLoaded', function() {
+    console.log('DOM Content Loaded - Initializing app...');
+    
+    try {
+        // Initialize role-based UI
+        updateUIBasedOnRole();
+        
+        // Load initial data
+        refreshDashboard();
+        
+        // Set up navigation event listeners
+        document.querySelectorAll('.nav-btn').forEach(btn => {
+            btn.addEventListener('click', function() {
+                const section = this.dataset.section;
+                showSection(section);
+            });
+        });
+        
+        console.log('App initialized successfully');
+        
+    } catch (error) {
+        console.error('Error initializing app:', error);
+        alert('Error initializing application: ' + error.message);
+    }
+});
+
+// Make functions available globally for debugging
+window.loadCases = loadCases;
+window.refreshDashboard = refreshDashboard;
+window.showSection = showSection;
