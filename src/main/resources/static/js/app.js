@@ -954,184 +954,67 @@ async function loadApprovalTasks() {
 }
 
 /**
- * Display approval tasks for supervisors with enhanced UI
+ * Display approval tasks for supervisors
  */
 function displayApprovalTasks(tasks) {
     const container = document.getElementById('approvals-container');
-    const counterElement = document.getElementById('approval-counter');
-    const countElement = document.getElementById('pending-count');
-    
-    // Update counter
-    if (counterElement && countElement) {
-        countElement.textContent = tasks.length;
-        counterElement.style.display = tasks.length > 0 ? 'flex' : 'none';
-    }
     
     if (tasks.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
                 <i class="fas fa-check-circle"></i>
                 <h3>No Pending Approvals</h3>
-                <p>There are no cases waiting for approval. All cases have been reviewed.</p>
+                <p>There are no cases waiting for approval.</p>
             </div>
         `;
         return;
     }
     
-    container.innerHTML = tasks.map(task => {
-        // Parse additional case data if available
-        let caseData = {};
-        try {
-            if (task.description && task.description.includes('{')) {
-                const jsonStart = task.description.indexOf('{');
-                const jsonPart = task.description.substring(jsonStart);
-                caseData = JSON.parse(jsonPart);
-            }
-        } catch (e) {
-            // Fallback to basic task data
-        }
-        
-        return `
-            <div class="approval-card">
-                <div class="approval-header">
-                    <h4>${task.taskName || 'Case Approval Request'}</h4>
-                    <span class="task-status status-${task.status.toLowerCase()}">${task.status}</span>
+    container.innerHTML = tasks.map(task => `
+        <div class="approval-card">
+            <div class="approval-header">
+                <h4>${task.taskName}</h4>
+                <span class="task-status status-${task.status.toLowerCase()}">${task.status}</span>
+            </div>
+            <div class="approval-details">
+                <div class="detail-item">
+                    <label>Case ID:</label>
+                    <span>${task.caseId}</span>
                 </div>
-                <div class="approval-details">
-                    <div class="detail-item">
-                        <label>📋 Case ID</label>
-                        <span>#${task.caseId}</span>
-                    </div>
-                    <div class="detail-item">
-                        <label>📅 Created Date</label>
-                        <span>${formatDate(task.createdAt)}</span>
-                    </div>
-                    ${caseData.caseType ? `
-                        <div class="detail-item">
-                            <label>🏷️ Case Type</label>
-                            <span>${caseData.caseType}</span>
-                        </div>
-                    ` : ''}
-                    ${caseData.priority ? `
-                        <div class="detail-item">
-                            <label>⚡ Priority</label>
-                            <span class="priority-${caseData.priority.toLowerCase()}">${caseData.priority}</span>
-                        </div>
-                    ` : ''}
-                    ${caseData.riskScore ? `
-                        <div class="detail-item">
-                            <label>⚠️ Risk Score</label>
-                            <span class="risk-score-${getRiskLevel(caseData.riskScore)}">${caseData.riskScore}/100</span>
-                        </div>
-                    ` : ''}
-                    ${caseData.entity ? `
-                        <div class="detail-item">
-                            <label>🏢 Entity</label>
-                            <span>${caseData.entity}</span>
-                        </div>
-                    ` : ''}
-                    ${caseData.alertId ? `
-                        <div class="detail-item">
-                            <label>🚨 Alert ID</label>
-                            <span>${caseData.alertId}</span>
-                        </div>
-                    ` : ''}
-                    ${caseData.createdBy ? `
-                        <div class="detail-item">
-                            <label>👤 Created By</label>
-                            <span>${caseData.createdBy}</span>
-                        </div>
-                    ` : ''}
+                <div class="detail-item">
+                    <label>Created:</label>
+                    <span>${formatDate(task.createdAt)}</span>
                 </div>
-                ${caseData.description ? `
-                    <div class="approval-description">
-                        <div class="detail-item">
-                            <label>📝 Case Description</label>
-                            <span>${caseData.description}</span>
-                        </div>
-                    </div>
-                ` : ''}
-                <div class="approval-actions">
-                    ${hasPermission('APPROVE_CASE') ? `
-                        <button class="btn btn-success btn-sm" onclick="approveCase('${task.id}', '${task.caseId}', true)">
-                            <i class="fas fa-check"></i> Approve Case
-                        </button>
-                        <button class="btn btn-danger btn-sm" onclick="approveCase('${task.id}', '${task.caseId}', false)">
-                            <i class="fas fa-times"></i> Reject Case
-                        </button>
-                    ` : `
-                        <div class="permission-notice">
-                            <i class="fas fa-info-circle"></i>
-                            Supervisor privileges required to approve cases
-                        </div>
-                    `}
-                    <button class="btn btn-info btn-sm" onclick="viewCaseFromTask('${task.caseId}')">
-                        <i class="fas fa-eye"></i> View Full Case
-                    </button>
+                <div class="detail-item">
+                    <label>Description:</label>
+                    <span>${task.description}</span>
                 </div>
             </div>
-        `;
-    }).join('');
+            <div class="approval-actions">
+                <button class="btn btn-success btn-sm" onclick="approveCase('${task.id}', '${task.caseId}', true)">
+                    <i class="fas fa-check"></i> Approve
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="approveCase('${task.id}', '${task.caseId}', false)">
+                    <i class="fas fa-times"></i> Reject
+                </button>
+                <button class="btn btn-info btn-sm" onclick="viewCaseFromTask('${task.caseId}')">
+                    <i class="fas fa-eye"></i> View Case
+                </button>
+            </div>
+        </div>
+    `).join('');
 }
 
 /**
- * Approve or reject a case with enhanced feedback
+ * Approve or reject a case
  */
 async function approveCase(taskId, caseId, approved) {
     const action = approved ? 'approve' : 'reject';
-    const actionTitle = approved ? 'Approve Case' : 'Reject Case';
-    const actionColor = approved ? 'success' : 'danger';
+    const comments = prompt(`Enter comments for ${action}ing this case:`);
     
-    // Create a more professional approval dialog
-    const modalHtml = `
-        <div class="modal-overlay" id="approval-modal">
-            <div class="modal-content approval-modal">
-                <div class="modal-header ${actionColor}">
-                    <h3><i class="fas fa-${approved ? 'check' : 'times'}"></i> ${actionTitle}</h3>
-                    <button class="modal-close" onclick="closeApprovalModal()">&times;</button>
-                </div>
-                <div class="modal-body">
-                    <p>You are about to <strong>${action}</strong> Case #${caseId}.</p>
-                    <p>Please provide your comments for this decision:</p>
-                    <textarea id="approval-comments" placeholder="Enter your comments here..." rows="4" required></textarea>
-                    <div class="form-note">
-                        <i class="fas fa-info-circle"></i>
-                        Comments are required and will be recorded in the audit trail.
-                    </div>
-                </div>
-                <div class="modal-footer">
-                    <button class="btn btn-secondary" onclick="closeApprovalModal()">
-                        <i class="fas fa-times"></i> Cancel
-                    </button>
-                    <button class="btn btn-${actionColor}" onclick="submitApproval('${taskId}', '${caseId}', ${approved})">
-                        <i class="fas fa-${approved ? 'check' : 'times'}"></i> Confirm ${actionTitle}
-                    </button>
-                </div>
-            </div>
-        </div>
-    `;
-    
-    // Add modal to page
-    document.body.insertAdjacentHTML('beforeend', modalHtml);
-    document.getElementById('approval-comments').focus();
-}
-
-/**
- * Submit the approval decision
- */
-async function submitApproval(taskId, caseId, approved) {
-    const comments = document.getElementById('approval-comments').value.trim();
-    
-    if (!comments) {
-        showAlert('Please provide comments for your decision.');
-        return;
-    }
-    
-    const action = approved ? 'approve' : 'reject';
+    if (comments === null) return; // User cancelled
     
     try {
-        showLoading();
-        
         const result = await apiRequest(`/tasks/${taskId}/approve-case`, {
             method: 'PUT',
             body: JSON.stringify({
@@ -1141,29 +1024,15 @@ async function submitApproval(taskId, caseId, approved) {
             })
         });
         
-        hideLoading();
-        closeApprovalModal();
-        
-        showSuccess(`Case #${caseId} has been ${approved ? 'approved' : 'rejected'} successfully!`);
+        showSuccess(result.message);
         
         // Refresh approval tasks and dashboard
         await loadApprovalTasks();
         await refreshDashboard();
         
     } catch (error) {
-        hideLoading();
         console.error('Error processing approval:', error);
         showAlert(`Error ${action}ing case: ${error.message}`);
-    }
-}
-
-/**
- * Close the approval modal
- */
-function closeApprovalModal() {
-    const modal = document.getElementById('approval-modal');
-    if (modal) {
-        modal.remove();
     }
 }
 
