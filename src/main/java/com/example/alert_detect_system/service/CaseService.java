@@ -164,6 +164,27 @@ public class CaseService {
         return caseRepository.findByCreatedBy(createdBy);
     }
     
+    /**
+     * Get recent cases ordered by creation date (newest first)
+     * Used by both admin and analyst dashboards
+     */
+    public List<CaseModel> getRecentCases(int limit) {
+        return caseRepository.findAllByOrderByCreatedAtDesc()
+            .stream()
+            .limit(limit)
+            .toList();
+    }
+    
+    /**
+     * Get recent cases for a specific user
+     */
+    public List<CaseModel> getRecentCasesByUser(String createdBy, int limit) {
+        return caseRepository.findByCreatedByOrderByCreatedAtDesc(createdBy)
+            .stream()
+            .limit(limit)
+            .toList();
+    }
+
     // ========== PRIVATE HELPER METHODS (Simple Data Operations Only) ==========
     
     private void updateCaseFields(CaseModel caseModel, CaseRequestDto updateRequest) {

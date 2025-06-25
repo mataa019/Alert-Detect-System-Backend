@@ -20,6 +20,11 @@ public interface CaseRepository extends JpaRepository<CaseModel, UUID> {
     
     List<CaseModel> findByCreatedBy(String createdBy);
     
+    // Methods for fetching recent cases ordered by creation date
+    List<CaseModel> findAllByOrderByCreatedAtDesc();
+    
+    List<CaseModel> findByCreatedByOrderByCreatedAtDesc(String createdBy);
+    
     @Query("SELECT c FROM CaseModel c WHERE c.alertId = :alertId")
     List<CaseModel> findByAlertId(String alertId);
     
