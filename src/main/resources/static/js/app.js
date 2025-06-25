@@ -319,8 +319,15 @@ async function loadCaseStats() {
 
 async function loadRecentCases() {
     try {
-        const cases = await apiRequest('/cases');
-        const recentCases = cases.slice(0, 5); // Get last 5 cases
+        // Use the new recent cases endpoint with proper ordering
+        let recentCases;
+        if (hasPermission('VIEW_ALL_CASES')) {
+            // Admin can see all recent cases
+            recentCases = await apiRequest('/cases/recent?limit=5');
+        } else {
+            // Analyst can only see their own recent cases
+            recentCases = await apiRequest(`/cases/recent?limit=5&user=${currentUser}`);
+        }
         
         const container = document.getElementById('recent-cases');
         
@@ -369,11 +376,11 @@ async function loadCases() {
     try {
         let cases;
         if (hasPermission('VIEW_ALL_CASES')) {
-            // Admin can see all cases
-            cases = await apiRequest('/cases');
+            // Admin can see all cases - get recent first for better performance
+            cases = await apiRequest('/cases/recent?limit=50'); // Get more recent cases
         } else {
             // Analyst can only see their own cases
-            cases = await apiRequest(`/cases?creator=${currentUser}`);
+            cases = await apiRequest(`/cases/recent?limit=50&user=${currentUser}`);
         }
         allCases = cases;
         displayCases(cases);

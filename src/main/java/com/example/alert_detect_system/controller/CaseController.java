@@ -156,6 +156,33 @@ public class CaseController {
         }
     }
     
+    /**
+     * 5. GET RECENT CASES - For dashboard display
+     * GET /api/cases/recent?limit=10&user=analyst
+     */
+    @GetMapping("/recent")
+    public ResponseEntity<List<CaseModel>> getRecentCases(
+            @RequestParam(required = false, defaultValue = "10") int limit,
+            @RequestParam(required = false) String user) {
+        
+        try {
+            List<CaseModel> recentCases;
+            
+            if (user != null && !user.trim().isEmpty()) {
+                // Get recent cases for specific user
+                recentCases = caseService.getRecentCasesByUser(user, limit);
+            } else {
+                // Get recent cases for all users (admin view)
+                recentCases = caseService.getRecentCases(limit);
+            }
+            
+            return ResponseEntity.ok(recentCases);
+            
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+    
     // Helper method to convert Map to DTO
     private CaseRequestDto mapToDto(Map<String, Object> requestBody) {
         CaseRequestDto dto = new CaseRequestDto();
