@@ -801,14 +801,14 @@ async function showTaskDetails(taskId) {
 // Approval Functions
 async function loadApprovals() {
     try {
-        const pendingCases = await apiRequest('/cases?pendingApproval=true');
-        displayPendingApprovals(pendingCases);
+        // Use the new approval tasks endpoint
+        await loadApprovalTasks();
     } catch (error) {
-        console.error('Error loading pending approvals:', error);
-        document.getElementById('pending-approvals').innerHTML = `
+        console.error('Error loading approvals:', error);
+        document.getElementById('approvals-container').innerHTML = `
             <div class="alert alert-error">
                 <i class="fas fa-exclamation-circle"></i>
-                Error loading pending approvals: ${error.message}
+                Error loading approvals: ${error.message}
             </div>
         `;
     }
@@ -932,6 +932,107 @@ async function approveCase(caseId, approved) {
     } catch (error) {
         console.error('Error processing approval:', error);
         showAlert(`Error processing approval: ${error.message}`);
+    }
+}
+
+/**
+ * Load approval tasks for supervisors (admin)
+ */
+async function loadApprovalTasks() {
+    try {
+        const approvalTasks = await apiRequest('/tasks/pending-approvals');
+        displayApprovalTasks(approvalTasks);
+    } catch (error) {
+        console.error('Error loading approval tasks:', error);
+        document.getElementById('approvals-container').innerHTML = `
+            <div class="alert alert-error">
+                <i class="fas fa-exclamation-circle"></i>
+                Error loading approval tasks: ${error.message}
+            </div>
+        `;
+    }
+}
+
+/**
+ * Display approval tasks for supervisors
+ */
+function displayApprovalTasks(tasks) {
+    const container = document.getElementById('approvals-container');
+    
+    if (tasks.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-tasks"></i>
+                <h3>No Pending Approvals</h3>
+                <p>There are no cases waiting for approval.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = tasks.map(task => `
+        <div class="approval-card">
+            <div class="approval-header">
+                <h4>${task.taskName}</h4>
+                <span class="task-status status-${task.status.toLowerCase()}">${task.status}</span>
+            </div>
+            <div class="approval-details">
+                <div class="detail-item">
+                    <label>Case ID:</label>
+                    <span>${task.caseId}</span>
+                </div>
+                <div class="detail-item">
+                    <label>Created:</label>
+                    <span>${formatDate(task.createdAt)}</span>
+                </div>
+                <div class="detail-item">
+                    <label>Description:</label>
+                    <span>${task.description}</span>
+                </div>
+            </div>
+            <div class="approval-actions">
+                <button class="btn btn-success btn-sm" onclick="approveCase('${task.id}', '${task.caseId}', true)">
+                    <i class="fas fa-check"></i> Approve
+                </button>
+                <button class="btn btn-danger btn-sm" onclick="approveCase('${task.id}', '${task.caseId}', false)">
+                    <i class="fas fa-times"></i> Reject
+                </button>
+                <button class="btn btn-info btn-sm" onclick="viewCaseFromTask('${task.caseId}')">
+                    <i class="fas fa-eye"></i> View Case
+                </button>
+            </div>
+        </div>
+    `).join('');
+}
+
+/**
+ * Approve or reject a case
+ */
+async function approveCase(taskId, caseId, approved) {
+    const action = approved ? 'approve' : 'reject';
+    const comments = prompt(`Enter comments for ${action}ing this case:`);
+    
+    if (comments === null) return; // User cancelled
+    
+    try {
+        const result = await apiRequest(`/tasks/${taskId}/approve-case`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                approved: approved,
+                comments: comments,
+                approvedBy: currentUser
+            })
+        });
+        
+        showSuccess(result.message);
+        
+        // Refresh approval tasks and dashboard
+        await loadApprovalTasks();
+        await refreshDashboard();
+        
+    } catch (error) {
+        console.error('Error processing approval:', error);
+        showAlert(`Error ${action}ing case: ${error.message}`);
     }
 }
 
