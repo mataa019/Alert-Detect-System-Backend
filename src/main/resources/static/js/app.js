@@ -834,7 +834,14 @@ function displayCompletedApprovals(tasks) {
         container.id = 'completed-approvals-container';
         document.getElementById('approvals-container').appendChild(container);
     }
-    if (tasks.length === 0) {
+    // Filter: Only show approvals by admin and for case creation
+    const filteredTasks = tasks.filter(task => {
+        // Adjust these checks if your backend uses different field names/values
+        const isAdminApproval = (task.approvedBy === 'admin' || task.approvedBy === USERS['admin'].email || task.approvedBy === USERS['admin'].name);
+        const isCaseCreation = (task.taskName && task.taskName.toLowerCase().includes('case creation'));
+        return isAdminApproval && isCaseCreation;
+    });
+    if (filteredTasks.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
                 <i class="fas fa-history"></i>
@@ -846,7 +853,7 @@ function displayCompletedApprovals(tasks) {
     }
     container.innerHTML = `
         <h3><i class="fas fa-history"></i> Completed Approvals</h3>
-        ${tasks.map(task => `
+        ${filteredTasks.map(task => `
             <div class="approval-card completed">
                 <div class="approval-header">
                     <h4>${task.taskName}</h4>
