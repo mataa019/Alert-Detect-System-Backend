@@ -305,6 +305,20 @@ public class TaskController {
         }
     }
 
+    /**
+     * Get completed approval tasks (for supervisors/admin)
+     * GET /api/tasks/approved-approvals
+     */
+    @GetMapping("/approved-approvals")
+    public ResponseEntity<List<TaskModel>> getApprovedApprovalTasks() {
+        try {
+            List<TaskModel> approvedTasks = taskService.getApprovedApprovalTasks();
+            return ResponseEntity.ok(approvedTasks);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
+        }
+    }
+
     // DTO for task approval
     public static class ApprovalTaskRequest {
         private boolean approved;

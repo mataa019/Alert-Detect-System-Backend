@@ -801,8 +801,9 @@ async function showTaskDetails(taskId) {
 // Approval Functions
 async function loadApprovals() {
     try {
-        // Use the new approval tasks endpoint
+        // Load both pending and completed approvals
         await loadApprovalTasks();
+        await loadCompletedApprovals();
     } catch (error) {
         console.error('Error loading approvals:', error);
         document.getElementById('approvals-container').innerHTML = `
@@ -814,125 +815,57 @@ async function loadApprovals() {
     }
 }
 
-function displayPendingApprovals(cases) {
-    const container = document.getElementById('pending-approvals');
-    
-    if (cases.length === 0) {
+// Load completed approval tasks for admin
+async function loadCompletedApprovals() {
+    try {
+        const completedTasks = await apiRequest('/tasks/approved-approvals');
+        displayCompletedApprovals(completedTasks);
+    } catch (error) {
+        console.error('Error loading completed approvals:', error);
+        // Optionally show an error in a separate container
+    }
+}
+
+// Display completed approvals in a separate section
+function displayCompletedApprovals(tasks) {
+    let container = document.getElementById('completed-approvals-container');
+    if (!container) {
+        // Create the container if it doesn't exist
+        container = document.createElement('div');
+        container.id = 'completed-approvals-container';
+        document.getElementById('approvals-container').appendChild(container);
+    }
+    if (tasks.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
-                <i class="fas fa-check-circle"></i>
-                <h3>No Pending Approvals</h3>
-                <p>All cases have been reviewed and approved.</p>
+                <i class="fas fa-history"></i>
+                <h3>No Completed Approvals</h3>
+                <p>No cases have been approved yet.</p>
             </div>
         `;
         return;
     }
-    
-    container.innerHTML = cases.map(caseItem => `
-        <div class="case-card approval-card">
-            <div class="case-header">
-                <div class="case-number">${caseItem.caseNumber}</div>
-                <div class="case-status status-pending-approval">Pending Approval</div>
-            </div>
-            <div class="case-details">
-                <div class="case-detail">
-                    <label>Type</label>
-                    <span>${caseItem.caseType || 'N/A'}</span>
+    container.innerHTML = `
+        <h3><i class="fas fa-history"></i> Completed Approvals</h3>
+        ${tasks.map(task => `
+            <div class="approval-card completed">
+                <div class="approval-header">
+                    <h4>${task.taskName}</h4>
+                    <span class="task-status status-${task.status.toLowerCase()}">${task.status}</span>
                 </div>
-                <div class="case-detail">
-                    <label>Priority</label>
-                    <span class="priority-${caseItem.priority?.toLowerCase() || 'normal'}">${caseItem.priority || 'N/A'}</span>
+                <div class="approval-details">
+                    <div class="detail-item"><label>Case ID:</label> <span>${task.caseId}</span></div>
+                    <div class="detail-item"><label>Completed:</label> <span>${formatDate(task.completedAt)}</span></div>
+                    <div class="detail-item"><label>Description:</label> <span>${task.description}</span></div>
                 </div>
-                <div class="case-detail">
-                    <label>Risk Score</label>
-                    <span class="risk-score-${getRiskLevel(caseItem.riskScore)}">${caseItem.riskScore || 'N/A'}</span>
-                </div>
-                <div class="case-detail">
-                    <label>Created By</label>
-                    <span>${caseItem.createdBy}</span>
-                </div>
-                <div class="case-detail">
-                    <label>Entity</label>
-                    <span>${caseItem.entity || 'N/A'}</span>
-                </div>
-                <div class="case-detail">
-                    <label>Alert ID</label>
-                    <span>${caseItem.alertId || 'N/A'}</span>
-                </div>
-            </div>
-            <div class="case-description">
-                <strong>Description:</strong>
-                <p>${caseItem.description || 'No description'}</p>
-            </div>            <div class="approval-actions">
-                ${hasPermission('APPROVE_CASE') ? `
-                    <button class="btn btn-success btn-sm" onclick="approveCase('${caseItem.id}', true)">
-                        <i class="fas fa-check"></i> Approve
+                <div class="approval-actions">
+                    <button class="btn btn-info btn-sm" onclick="viewCaseFromTask('${task.caseId}')">
+                        <i class="fas fa-eye"></i> View Case
                     </button>
-                    <button class="btn btn-danger btn-sm" onclick="approveCase('${caseItem.id}', false)">
-                        <i class="fas fa-times"></i> Reject
-                    </button>
-                ` : `
-                    <div class="permission-notice">
-                        <i class="fas fa-info-circle"></i>
-                        You need supervisor privileges to approve cases
-                    </div>
-                `}
-                <button class="btn btn-info btn-sm" onclick="showCaseDetails('${caseItem.id}')">
-                    <i class="fas fa-eye"></i> View Details
-                </button>
+                </div>
             </div>
-        </div>
-    `).join('');
-}
-
-function getRiskLevel(riskScore) {
-    if (!riskScore) return 'unknown';
-    if (riskScore >= 80) return 'high';
-    if (riskScore >= 50) return 'medium';
-    return 'low';
-}
-
-async function approveCase(caseId, approved) {
-    // Check if user has permission to approve cases
-    if (!hasPermission('APPROVE_CASE')) {
-        showAlert('You do not have permission to approve cases');
-        return;
-    }
-    
-    const comments = prompt(approved ? 
-        'Enter approval comments (optional):' : 
-        'Enter rejection reason (required):');
-    
-    if (!approved && (!comments || comments.trim() === '')) {
-        showAlert('Rejection reason is required');
-        return;
-    }
-    
-    try {
-        const response = await apiRequest(`/cases/${caseId}?action=approve`, {
-            method: 'PUT',
-            body: JSON.stringify({
-                approved: approved,
-                comments: comments || '',
-                updatedBy: currentUser
-            })
-        });
-        
-        const action = approved ? 'approved' : 'rejected';
-        showSuccess(`Case ${action} successfully by ${currentUserData.name}!`);
-        
-        // Refresh approvals list
-        loadApprovals();
-        
-        // Refresh dashboard if it's visible
-        if (document.getElementById('dashboard').classList.contains('active')) {
-            loadDashboard();
-        }
-        
-    } catch (error) {
-        console.error('Error processing approval:', error);
-        showAlert(`Error processing approval: ${error.message}`);
-    }
+        `).join('')}
+    `;
 }
 
 /**
