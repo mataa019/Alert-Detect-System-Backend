@@ -39,7 +39,8 @@ public class CaseModel {
     
     private LocalDateTime createdAt;
     
-    private LocalDateTime updatedAt;    private String processInstanceId;
+    private LocalDateTime updatedAt;
+    private String processInstanceId;
     
     // Constructors
     public CaseModel() {
