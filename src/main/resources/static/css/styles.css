@@ -170,8 +170,34 @@ body {
 
 .header-actions {
     display: flex;
-    gap: 1rem;
     align-items: center;
+    gap: 1rem;
+    flex-wrap: wrap;
+}
+
+/* Approval Counter */
+.approval-counter {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(45deg, #ff6b6b, #ffa726);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 20px;
+    font-size: 0.875rem;
+    font-weight: 600;
+    box-shadow: 0 2px 8px rgba(255,107,107,0.3);
+    animation: pulse 2s infinite;
+}
+
+.approval-counter i {
+    font-size: 1rem;
+}
+
+@keyframes pulse {
+    0% { box-shadow: 0 2px 8px rgba(255,107,107,0.3); }
+    50% { box-shadow: 0 4px 20px rgba(255,107,107,0.6); }
+    100% { box-shadow: 0 2px 8px rgba(255,107,107,0.3); }
 }
 
 /* Buttons */
