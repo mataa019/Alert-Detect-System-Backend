@@ -449,12 +449,16 @@ function displayCases(cases) {
                         <i class="fas fa-edit"></i> Complete Case
                     </button>` : ''
                 }
-                <button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); editCaseDetails('${caseItem.id}')">
-                    <i class="fas fa-edit"></i> Edit
-                </button>
-                <button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteCase('${caseItem.id}', '${caseItem.caseNumber}')">
-                    <i class="fas fa-trash"></i> Delete
-                </button>
+                ${(caseItem.createdBy === currentUser || hasPermission('VIEW_ALL_CASES')) ? 
+                    `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); editCaseDetails('${caseItem.id}')">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>` : ''
+                }
+                ${(caseItem.status === 'DRAFT' || caseItem.createdBy === currentUser || hasPermission('VIEW_ALL_CASES')) ? 
+                    `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteCase('${caseItem.id}', '${caseItem.caseNumber}')">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>` : ''
+                }
                 <button class="btn btn-info btn-sm" onclick="event.stopPropagation(); showCaseDetails('${caseItem.id}')">
                     <i class="fas fa-eye"></i> View Details
                 </button>
@@ -1299,3 +1303,12 @@ document.addEventListener('DOMContentLoaded', function() {
 window.loadCases = loadCases;
 window.refreshDashboard = refreshDashboard;
 window.showSection = showSection;
+
+function updateRoleHelp() {
+    // Update help text based on current user role
+    const userRole = currentUserData.role;
+    
+    // You can add role-specific help content here if needed
+    // For now, just make it a no-op function to prevent the error
+    console.log(`Help updated for role: ${userRole}`);
+}
