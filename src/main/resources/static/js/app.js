@@ -1363,6 +1363,48 @@ function canEditCase(caseItem) {
            hasPermission('VIEW_ALL_CASES');
 }
 
+/**
+ * Populate form with existing case data for editing or completion
+ */
+function populateFormForEdit(caseItem) {
+    console.log('Populating form with case data:', caseItem);
+    
+    try {
+        // Basic fields
+        document.getElementById('description').value = caseItem.description || '';
+        document.getElementById('entity').value = caseItem.entity || '';
+        document.getElementById('alertId').value = caseItem.alertId || '';
+        
+        // Dropdowns - only set if value exists and is valid
+        const caseTypeSelect = document.getElementById('caseType');
+        if (caseItem.caseType && caseTypeSelect) {
+            caseTypeSelect.value = caseItem.caseType;
+        }
+        
+        const prioritySelect = document.getElementById('priority');
+        if (caseItem.priority && prioritySelect) {
+            prioritySelect.value = caseItem.priority;
+        }
+        
+        const typologySelect = document.getElementById('typology');
+        if (caseItem.typology && typologySelect) {
+            typologySelect.value = caseItem.typology;
+        }
+        
+        // Risk score
+        const riskScoreInput = document.getElementById('riskScore');
+        if (caseItem.riskScore && riskScoreInput) {
+            riskScoreInput.value = caseItem.riskScore;
+        }
+        
+        console.log('Form populated successfully');
+        
+    } catch (error) {
+        console.error('Error populating form:', error);
+        showAlert('Error loading case data into form: ' + error.message);
+    }
+}
+
 // Test function to verify UI is working
 function testUI() {
     console.log('Testing UI...');
