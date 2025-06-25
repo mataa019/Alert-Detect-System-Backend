@@ -111,16 +111,17 @@ public class CaseController {
             
             switch (action.toLowerCase()) {
                 case "complete":
-                    // Complete draft case
+                    // Complete draft case using consolidated method
                     CaseRequestDto updateRequest = mapToDto(requestBody);
-                    CaseModel completedCase = caseService.completeCaseCreation(caseId, updateRequest, updatedBy);
+                    CaseModel completedCase = caseService.performCaseAction(caseId, "complete", updateRequest, updatedBy, Map.of());
                     return ResponseEntity.ok(completedCase);
                     
                 case "approve":
-                    // Approve/reject case
+                    // Approve/reject case using consolidated method
                     boolean approved = (Boolean) requestBody.getOrDefault("approved", false);
                     String comments = (String) requestBody.getOrDefault("comments", "");
-                    CaseModel approvedCase = caseService.approveCaseCreation(caseId, approved, comments, updatedBy);
+                    Map<String, Object> approvalParams = Map.of("approved", approved, "comments", comments);
+                    CaseModel approvedCase = caseService.performCaseAction(caseId, "approve", null, updatedBy, approvalParams);
                     
                     Map<String, Object> response = new HashMap<>();
                     response.put("case", approvedCase);
@@ -128,19 +129,20 @@ public class CaseController {
                     return ResponseEntity.ok(response);
                     
                 case "status":
-                    // Update status only
+                    // Update status using consolidated method
                     String statusStr = (String) requestBody.get("status");
                     CaseStatus newStatus = CaseStatus.valueOf(statusStr.toUpperCase());
-                    CaseModel updatedCase = caseService.updateCaseStatus(caseId, newStatus, updatedBy);
+                    Map<String, Object> statusParams = Map.of("status", newStatus);
+                    CaseModel updatedCase = caseService.performCaseAction(caseId, "status", null, updatedBy, statusParams);
                     return ResponseEntity.ok(updatedCase);
                     
                 case "update":
-                    // Update case details (for drafts)
+                    // Update case details using consolidated method
                     if (!CaseStatus.DRAFT.equals(existingCase.get().getStatus())) {
                         return ResponseEntity.badRequest().body("Only DRAFT cases can be updated");
                     }
                     CaseRequestDto caseUpdate = mapToDto(requestBody);
-                    CaseModel updated = caseService.updateCase(caseId, caseUpdate, updatedBy);
+                    CaseModel updated = caseService.performCaseAction(caseId, "update", caseUpdate, updatedBy, Map.of());
                     return ResponseEntity.ok(updated);
                     
                 default:

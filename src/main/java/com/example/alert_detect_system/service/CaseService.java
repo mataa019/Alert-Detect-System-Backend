@@ -336,9 +336,7 @@ public class CaseService {
         if (updateRequest.getTypology() != null) {
             existingCase.setTypology(updateRequest.getTypology());
         }
-        if (updateRequest.getAssignee() != null) {
-            existingCase.setAssignee(updateRequest.getAssignee());
-        }
+        // Note: assignee is handled separately in task assignment, not in case model
     }
     
     private boolean isCaseComplete(CaseModel caseModel) {
@@ -404,15 +402,6 @@ public class CaseService {
         int year = LocalDateTime.now().getYear();
         long count = caseRepository.count() + 1;
         return String.format("CASE-%d-%04d", year, count);
-    }
-    
-    /**
-     * User Story 1 & 2: Enhanced case completion with proper workflow
-     * @deprecated Use performCaseAction with action="complete" instead
-     */
-    @Deprecated
-    public CaseModel completeCaseCreation(UUID caseId, CaseRequestDto updateRequest, String updatedBy) {
-        return performCaseAction(caseId, "complete", updateRequest, updatedBy, Map.of());
     }
     
     /**
@@ -491,33 +480,6 @@ public class CaseService {
             
             auditService.logCaseAction(savedCase.getId(), "WORKFLOW_STARTED", updatedBy, 
                 "Investigation workflow started after completion");
-        }
-    }
-    
-    /**
-     * Update case fields from request
-     */
-    private void updateCaseFields(CaseModel existingCase, CaseRequestDto updateRequest) {
-        if (updateRequest.getCaseType() != null) {
-            existingCase.setCaseType(updateRequest.getCaseType());
-        }
-        if (updateRequest.getPriority() != null) {
-            existingCase.setPriority(updateRequest.getPriority());
-        }
-        if (updateRequest.getEntity() != null) {
-            existingCase.setEntity(updateRequest.getEntity());
-        }
-        if (updateRequest.getAlertId() != null) {
-            existingCase.setAlertId(updateRequest.getAlertId());
-        }
-        if (updateRequest.getDescription() != null) {
-            existingCase.setDescription(updateRequest.getDescription());
-        }
-        if (updateRequest.getRiskScore() != null) {
-            existingCase.setRiskScore(updateRequest.getRiskScore());
-        }
-        if (updateRequest.getTypology() != null) {
-            existingCase.setTypology(updateRequest.getTypology());
         }
     }
     
