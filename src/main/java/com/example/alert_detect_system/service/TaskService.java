@@ -166,4 +166,20 @@ public class TaskService {
     public List<TaskModel> getPendingApprovalTasks() {
         return taskRepository.findByTaskNameAndStatus("Approve Case Creation", "ACTIVE");
     }
+    
+    /**
+     * Create "Approve Case Creation" task when case is completed
+     */
+    public void createApprovalTask(UUID caseId, String originalCreator) {
+        // Create database task for supervisors to approve
+        TaskModel approvalTask = new TaskModel();
+        approvalTask.setCaseId(caseId);
+        approvalTask.setTaskName("Approve Case Creation");
+        approvalTask.setCandidateGroup("supervisors"); // Admin group
+        approvalTask.setStatus("ACTIVE");
+        approvalTask.setCreatedAt(java.time.LocalDateTime.now());
+        approvalTask.setDescription("Review and approve or reject the case creation. Original creator: " + originalCreator);
+        
+        taskRepository.save(approvalTask);
+    }
 }

@@ -33,6 +33,9 @@ public class CaseService {
     @Autowired
     private AuditService auditService;
     
+    @Autowired
+    private TaskService taskService;
+    
     // Basic validation constants - keep these for data integrity
     private static final List<String> VALID_CASE_TYPES = List.of(
         "FRAUD_DETECTION", "MONEY_LAUNDERING", "SUSPICIOUS_ACTIVITY", "COMPLIANCE_VIOLATION",
@@ -130,8 +133,10 @@ public class CaseService {
             case "update":
                 return updateCase(caseId, updateRequest, performedBy);
             case "complete":
-                // Just change status to PENDING_CASE_CREATION_APPROVAL - UI handles the rest
-                return updateCaseStatus(caseId, CaseStatus.PENDING_CASE_CREATION_APPROVAL, performedBy);
+                // Change status to PENDING_CASE_CREATION_APPROVAL and create approval task
+                CaseModel completedCase = updateCaseStatus(caseId, CaseStatus.PENDING_CASE_CREATION_APPROVAL, performedBy);
+                createApprovalTask(caseId, performedBy); // Create approval task for supervisors
+                return completedCase;
             case "approve":
                 // Just change status based on approval - UI handles workflow logic
                 boolean approved = (Boolean) params.getOrDefault("approved", false);
@@ -206,6 +211,13 @@ public class CaseService {
         caseRepository.delete(existingCase);
         
         logger.info("Case deleted successfully: {}", caseId);
+    }
+
+    /**
+     * Create approval task when case is completed
+     */
+    public void createApprovalTask(UUID caseId, String originalCreator) {
+        taskService.createApprovalTask(caseId, originalCreator);
     }
 
     // ========== PRIVATE HELPER METHODS (Simple Data Operations Only) ==========

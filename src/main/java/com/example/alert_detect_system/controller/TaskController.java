@@ -249,7 +249,7 @@ public class TaskController {
                 
                 // 2. Update case status to READY_FOR_ASSIGNMENT
                 // This should be done via the CaseService
-                caseService.updateCaseStatus(caseId, "READY_FOR_ASSIGNMENT");
+                caseService.updateCaseStatus(caseId, CaseStatus.READY_FOR_ASSIGNMENT, request.getApprovedBy());
                 
                 // 3. Create "Investigate Case" task
                 taskService.createInvestigateTask(caseId, "investigations"); // Group assignment
@@ -268,7 +268,7 @@ public class TaskController {
                 taskService.completeTask(taskId, variables);
                 
                 // 2. Update case status back to DRAFT
-                caseService.updateCaseStatus(caseId, "DRAFT");
+                caseService.updateCaseStatus(caseId, CaseStatus.DRAFT, request.getApprovedBy());
                 
                 // 3. Create "Complete Case Creation" task and assign back to original user
                 String originalUser = task.getProcessVariables().get("originalCreator").toString();
@@ -284,6 +284,20 @@ public class TaskController {
             
         } catch (Exception e) {
             return ResponseEntity.badRequest().body(Map.of("error", "Error processing approval: " + e.getMessage()));
+        }
+    }
+
+    /**
+     * Get pending approval tasks (for supervisors/admin)
+     * GET /api/tasks/pending-approvals
+     */
+    @GetMapping("/pending-approvals")
+    public ResponseEntity<List<TaskModel>> getPendingApprovalTasks() {
+        try {
+            List<TaskModel> pendingTasks = taskService.getPendingApprovalTasks();
+            return ResponseEntity.ok(pendingTasks);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().build();
         }
     }
 
