@@ -111,20 +111,20 @@ public class CaseController {
             String updatedBy = (String) requestBody.getOrDefault("updatedBy", "user");
             
             switch (action.toLowerCase()) {
-                case "complete":
+                case "complete" -> {
                     // Complete draft case using consolidated method
                     CaseRequestDto updateRequest = mapToDto(requestBody);
                     CaseModel completedCase = caseService.performCaseAction(caseId, "complete", updateRequest, updatedBy, Map.of());
                     return ResponseEntity.ok(completedCase);
-                    
-                case "approve":
+                }
+                case "approve" -> {
                     // Approve/reject case using consolidated method
                     Object approvedObj = requestBody.getOrDefault("approved", false);
                     boolean approved;
-                    if (approvedObj instanceof Boolean) {
-                        approved = (Boolean) approvedObj;
-                    } else if (approvedObj instanceof String) {
-                        approved = Boolean.parseBoolean((String) approvedObj);
+                    if (approvedObj instanceof Boolean approvedBool) {
+                        approved = approvedBool;
+                    } else if (approvedObj instanceof String approvedStr) {
+                        approved = Boolean.parseBoolean(approvedStr);
                     } else {
                         approved = false;
                     }
@@ -136,30 +136,31 @@ public class CaseController {
                     response.put("case", approvedCase);
                     response.put("message", approved ? "Case approved and workflow started" : "Case rejected");
                     return ResponseEntity.ok(response);
-                    
-                case "status":
+                }
+                case "status" -> {
                     // Update status using consolidated method
                     String statusStr = (String) requestBody.get("status");
                     CaseStatus newStatus = CaseStatus.valueOf(statusStr.toUpperCase());
                     Map<String, Object> statusParams = Map.of("status", newStatus);
                     CaseModel updatedCase = caseService.performCaseAction(caseId, "status", null, updatedBy, statusParams);
                     return ResponseEntity.ok(updatedCase);
-                    
-                case "update":
+                }
+                case "update" -> {
                     // Update case details using consolidated method
                     // Allow updates for DRAFT cases or if user is the creator/admin
                     CaseRequestDto caseUpdate = mapToDto(requestBody);
                     CaseModel updated = caseService.performCaseAction(caseId, "update", caseUpdate, updatedBy, Map.of());
                     return ResponseEntity.ok(updated);
-                
-                case "edit":
+                }
+                case "edit" -> {
                     // Same as update - general case editing
                     CaseRequestDto editRequest = mapToDto(requestBody);
                     CaseModel editedCase = caseService.performCaseAction(caseId, "update", editRequest, updatedBy, Map.of());
                     return ResponseEntity.ok(editedCase);
-                    
-                default:
+                }
+                default -> {
                     return ResponseEntity.badRequest().body("Invalid action: " + action);
+                }
             }
             
         } catch (Exception e) {
@@ -180,7 +181,6 @@ public class CaseController {
         
         try {
             List<CaseModel> recentCases;
-            
             if (user != null && !user.trim().isEmpty()) {
                 // Get recent cases for specific user
                 recentCases = caseService.getRecentCasesByUser(user, limit);
@@ -188,11 +188,10 @@ public class CaseController {
                 // Get recent cases for all users (admin view)
                 recentCases = caseService.getRecentCases(limit);
             }
-            
             return ResponseEntity.ok(recentCases);
-            
         } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
+            // Return empty list on error to match return type
+            return ResponseEntity.status(500).body(List.of());
         }
     }
     
@@ -249,8 +248,8 @@ public class CaseController {
         if (requestBody.get("typology") != null) dto.setTypology((String) requestBody.get("typology"));
         if (requestBody.get("riskScore") != null) {
             Object riskScore = requestBody.get("riskScore");
-            if (riskScore instanceof Number) {
-                dto.setRiskScore(((Number) riskScore).doubleValue());
+            if (riskScore instanceof Number number) {
+                dto.setRiskScore(number.doubleValue());
             }
         }
         if (requestBody.get("createdBy") != null) dto.setCreatedBy((String) requestBody.get("createdBy"));
