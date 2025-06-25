@@ -33,4 +33,10 @@ public interface TaskRepository extends JpaRepository<TaskModel, UUID> {
     
     // Count tasks by assignee
     long countByAssignee(String assignee);
+
+    // Find tasks by name and status (for approval workflow)
+    List<TaskModel> findByTaskNameAndStatus(String taskName, String status);
+    
+    // Find tasks by name only
+    List<TaskModel> findByTaskName(String taskName);
 }

@@ -20,6 +20,8 @@ import org.springframework.web.bind.annotation.RestController;
 import com.example.alert_detect_system.Model.TaskModel;
 import com.example.alert_detect_system.dto.TaskAssignDto;
 import com.example.alert_detect_system.service.TaskService;
+import com.example.alert_detect_system.service.CaseService;
+import com.example.alert_detect_system.Model.CaseStatus;
 
 @RestController
 @RequestMapping("/api/tasks")
@@ -28,6 +30,9 @@ public class TaskController {
     
     @Autowired
     private TaskService taskService;
+    
+    @Autowired
+    private CaseService caseService;
     
     // Get my tasks
     @GetMapping("/my/{assignee}")
@@ -244,7 +249,7 @@ public class TaskController {
                 
                 // 2. Update case status to READY_FOR_ASSIGNMENT
                 // This should be done via the CaseService
-                // Note: You'll need to inject CaseService here
+                caseService.updateCaseStatus(caseId, "READY_FOR_ASSIGNMENT");
                 
                 // 3. Create "Investigate Case" task
                 taskService.createInvestigateTask(caseId, "investigations"); // Group assignment
@@ -263,7 +268,7 @@ public class TaskController {
                 taskService.completeTask(taskId, variables);
                 
                 // 2. Update case status back to DRAFT
-                // This should be done via the CaseService
+                caseService.updateCaseStatus(caseId, "DRAFT");
                 
                 // 3. Create "Complete Case Creation" task and assign back to original user
                 String originalUser = task.getProcessVariables().get("originalCreator").toString();
