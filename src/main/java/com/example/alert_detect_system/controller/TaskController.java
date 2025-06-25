@@ -216,6 +216,16 @@ public class TaskController {
         return ResponseEntity.ok(tasks);
     }
     
+    /**
+     * Get all database tasks (Admin only)
+     * GET /api/tasks/all
+     */
+    @GetMapping("/all")
+    public ResponseEntity<List<TaskModel>> getAllTasks() {
+        List<TaskModel> tasks = taskService.getAllTasks();
+        return ResponseEntity.ok(tasks);
+    }
+    
     // DTO for task approval
     public static class ApprovalTaskRequest {
         private boolean approved;

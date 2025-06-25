@@ -306,22 +306,20 @@ public class CaseService {
             
             auditService.logCaseAction(savedCase.getId(), "TASK_CREATED", createdBy, 
                 "Complete Case Creation task created and assigned to " + createdBy);
-                
-        } else if (savedCase.getStatus() == CaseStatus.PENDING_CASE_CREATION_APPROVAL) {
-            // Create approval task for supervisor
+                  } else if (savedCase.getStatus() == CaseStatus.PENDING_CASE_CREATION_APPROVAL) {
+            // Create approval task for admin
             taskService.createTask(
                 "Approve Case Creation",
                 "Review and approve case creation request",
                 savedCase.getId(),
-                null, // Will be assigned to supervisor group
+                "admin", // Assigned to admin
                 "HIGH"
             );
             
             // Assign to supervisor group
             // taskService.assignTaskToGroup(taskId, "supervisors");
-            
-            auditService.logCaseAction(savedCase.getId(), "APPROVAL_TASK_CREATED", createdBy, 
-                "Case creation approval task created for supervisors");
+              auditService.logCaseAction(savedCase.getId(), "APPROVAL_TASK_CREATED", createdBy, 
+                "Case creation approval task created for admin");
                 
         } else if (savedCase.getStatus() == CaseStatus.READY_FOR_ASSIGNMENT) {
             // Start BPMN workflow directly
@@ -337,14 +335,13 @@ public class CaseService {
     /**
      * Create next task after case completion
      */
-    private void createNextTaskAfterCompletion(CaseModel savedCase, String updatedBy) {
-        if (savedCase.getStatus() == CaseStatus.PENDING_CASE_CREATION_APPROVAL) {
-            // Create approval task
+    private void createNextTaskAfterCompletion(CaseModel savedCase, String updatedBy) {        if (savedCase.getStatus() == CaseStatus.PENDING_CASE_CREATION_APPROVAL) {
+            // Create approval task for admin
             taskService.createTask(
                 "Approve Case Creation",
                 "Review and approve completed case creation",
                 savedCase.getId(),
-                null, // Group assignment
+                "admin", // Assigned to admin
                 "HIGH"
             );
             

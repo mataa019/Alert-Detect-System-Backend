@@ -16,6 +16,8 @@ public class CaseRequestDto {
     private Double riskScore;
     
     private String typology;
+    private String createdBy;
+    private String assignee;
     
     // Constructors
     public CaseRequestDto() {}
@@ -41,4 +43,10 @@ public class CaseRequestDto {
     
     public String getTypology() { return typology; }
     public void setTypology(String typology) { this.typology = typology; }
+    
+    public String getCreatedBy() { return createdBy; }
+    public void setCreatedBy(String createdBy) { this.createdBy = createdBy; }
+    
+    public String getAssignee() { return assignee; }
+    public void setAssignee(String assignee) { this.assignee = assignee; }
 }

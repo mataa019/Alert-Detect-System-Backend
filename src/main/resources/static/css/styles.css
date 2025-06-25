@@ -863,6 +863,30 @@ body {
     color: #155724;
 }
 
+/* Role-specific help styling */
+.role-help {
+    margin-top: 1rem;
+    padding: 1rem;
+    background: #e3f2fd;
+    border-left: 4px solid #2196f3;
+    border-radius: 5px;
+}
+
+.role-help h5 {
+    margin: 0 0 0.5rem 0;
+    color: #1976d2;
+    font-size: 1rem;
+}
+
+.role-help ul {
+    margin: 0.5rem 0;
+    padding-left: 1.5rem;
+}
+
+.role-help li {
+    margin: 0.25rem 0;
+}
+
 /* Responsive */
 @media (max-width: 768px) {
     .header-content {

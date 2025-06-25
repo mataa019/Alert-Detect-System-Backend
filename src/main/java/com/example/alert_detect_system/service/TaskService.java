@@ -120,4 +120,11 @@ public class TaskService {
     public List<TaskModel> getTasksByAssignee(String assignee) {
         return getMyTasksFromDB(assignee);
     }
+    
+    /**
+     * Get all tasks (Admin function)
+     */
+    public List<TaskModel> getAllTasks() {
+        return taskRepository.findAll();
+    }
 }
