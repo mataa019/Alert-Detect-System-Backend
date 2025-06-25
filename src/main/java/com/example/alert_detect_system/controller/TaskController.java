@@ -138,23 +138,6 @@ public class TaskController {
         }
     }
       // Create task record
-    @PostMapping("/create")
-    public ResponseEntity<?> createTask(@RequestBody TaskModel task) {
-        try {
-            if (task.getCaseId() == null || task.getTaskName() == null) {
-                return ResponseEntity.badRequest().body("CaseId and taskName are required");
-            }
-            TaskModel savedTask = taskService.saveTask(task);
-            return ResponseEntity.ok(savedTask);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
-        }
-    }
-    
-    /**
-     * User Story 1: Create a task for a case
-     * POST /api/tasks/create/{caseId}
-     */
     @PostMapping("/create/{caseId}")
     public ResponseEntity<TaskModel> createTaskForCase(
             @PathVariable UUID caseId,
@@ -170,48 +153,6 @@ public class TaskController {
             return ResponseEntity.ok(createdTask);
         } catch (Exception e) {
             return ResponseEntity.badRequest().build();
-        }
-    }
-    
-    /**
-     * Get draft cases with "Complete Case Creation" tasks
-     * GET /api/tasks/draft-completion
-     */
-    @GetMapping("/draft-completion")
-    public ResponseEntity<List<TaskModel>> getDraftCompletionTasks() {
-        List<TaskModel> tasks = taskService.getTasksByType("Complete Case Creation");
-        return ResponseEntity.ok(tasks);
-    }
-    
-    /**
-     * Get approval tasks for supervisors
-     * GET /api/tasks/approval
-     */
-    @GetMapping("/approval")
-    public ResponseEntity<List<TaskModel>> getApprovalTasks() {
-        List<TaskModel> approvalTasks = taskService.getTasksByType("Approve Case Creation");
-        return ResponseEntity.ok(approvalTasks);
-    }
-    
-    /**
-     * Complete approval task
-     * PUT /api/tasks/{taskId}/approve
-     */
-    @PutMapping("/{taskId}/approve")
-    public ResponseEntity<Map<String, Object>> approveTask(
-            @PathVariable UUID taskId,
-            @RequestBody ApprovalTaskRequest request) {
-        try {
-            // This would complete the task and trigger case approval
-            Map<String, Object> response = new HashMap<>();
-            response.put("message", "Task approval processed");
-            response.put("approved", request.isApproved());
-            
-            return ResponseEntity.ok(response);
-        } catch (Exception e) {
-            Map<String, Object> error = new HashMap<>();
-            error.put("error", e.getMessage());
-            return ResponseEntity.badRequest().body(error);
         }
     }
     
@@ -291,46 +232,12 @@ public class TaskController {
         }
     }
 
-    /**
-     * Get pending approval tasks (for supervisors/admin)
-     * GET /api/tasks/pending-approvals
-     */
-    @GetMapping("/pending-approvals")
-    public ResponseEntity<List<TaskModel>> getPendingApprovalTasks() {
-        try {
-            List<TaskModel> pendingTasks = taskService.getPendingApprovalTasks();
-            return ResponseEntity.ok(pendingTasks);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
+    // Get DB tasks by assignee
+    @GetMapping("/by-assignee/{assignee}")
+    public ResponseEntity<List<TaskModel>> getTasksByAssignee(@PathVariable String assignee) {
+        return ResponseEntity.ok(taskService.getTasksByAssignee(assignee));
     }
 
-    /**
-     * Get completed approval tasks (for supervisors/admin)
-     * GET /api/tasks/approved-approvals
-     */
-    @GetMapping("/approved-approvals")
-    public ResponseEntity<List<TaskModel>> getApprovedApprovalTasks() {
-        try {
-            List<TaskModel> approvedTasks = taskService.getApprovedApprovalTasks();
-            return ResponseEntity.ok(approvedTasks);
-        } catch (Exception e) {
-            return ResponseEntity.badRequest().build();
-        }
-    }
-
-    // DTO for task approval
-    public static class ApprovalTaskRequest {
-        private boolean approved;
-        private String comments;
-        
-        public boolean isApproved() { return approved; }
-        public void setApproved(boolean approved) { this.approved = approved; }
-        
-        public String getComments() { return comments; }
-        public void setComments(String comments) { this.comments = comments; }
-    }
-    
     // DTO for task creation
     public static class CreateTaskRequest {
         private String title;

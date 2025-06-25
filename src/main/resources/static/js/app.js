@@ -573,7 +573,7 @@ async function loadTasks() {
             // Admin viewing all tasks
             console.log('Loading all tasks for admin');
             [flowableTasks, dbTasks] = await Promise.all([
-                apiRequest(`/tasks/group/supervisors`).catch(() => []), // Flowable tasks for supervisors
+                apiRequest(`/tasks/group/admin`).catch(() => []), // Flowable tasks for admin group
                 apiRequest(`/tasks/all`).catch(() => []) // All database tasks
             ]);
         } else {
