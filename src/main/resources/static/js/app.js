@@ -444,6 +444,11 @@ function displayCases(cases) {
             </div>
             <div class="case-description">${caseItem.description || 'No description'}</div>
             <div class="case-actions">
+                ${caseItem.status === 'DRAFT' && caseItem.createdBy === currentUser ? 
+                    `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); abandonCasePrompt('${caseItem.id}', '${caseItem.caseNumber}')">
+                        <i class="fas fa-ban"></i> Abandon
+                    </button>` : ''
+                }
                 ${caseItem.status === 'DRAFT' ? 
                     `<button class="btn btn-warning btn-sm" onclick="event.stopPropagation(); editCase('${caseItem.id}')">
                         <i class="fas fa-edit"></i> Complete Case
@@ -1393,4 +1398,26 @@ function updateRoleHelp() {
     // You can add role-specific help content here if needed
     // For now, just make it a no-op function to prevent the error
     console.log(`Help updated for role: ${userRole}`);
+}
+
+// Abandon Case Prompt and Logic
+window.abandonCasePrompt = function(caseId, caseNumber) {
+    const reason = prompt(`Please provide a reason for abandoning case ${caseNumber}:`, "");
+    if (reason === null) return; // Cancelled
+    if (confirm("Are you sure you want to abandon this draft case? This action cannot be undone.")) {
+        abandonCase(caseId, reason);
+    }
+}
+
+async function abandonCase(caseId, reason) {
+    try {
+        await apiRequest(`/cases/abandon/${caseId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ abandonedBy: currentUser, reason })
+        });
+        showSuccess('Case abandoned successfully.');
+        await loadCases();
+    } catch (error) {
+        showAlert('Failed to abandon case: ' + (error.message || error));
+    }
 }
