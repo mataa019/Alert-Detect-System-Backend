@@ -207,25 +207,81 @@ public class TaskController {
     }
     
     /**
-     * Get database tasks by assignee
-     * GET /api/tasks/by-assignee/{assignee}
+     * SUPERVISOR APPROVAL WORKFLOW
+     * PUT /api/tasks/{taskId}/approve-case
+     * This endpoint handles the complete supervisor approval workflow
      */
-    @GetMapping("/by-assignee/{assignee}")
-    public ResponseEntity<List<TaskModel>> getTasksByAssignee(@PathVariable String assignee) {
-        List<TaskModel> tasks = taskService.getTasksByAssignee(assignee);
-        return ResponseEntity.ok(tasks);
+    @PutMapping("/{taskId}/approve-case")
+    public ResponseEntity<Map<String, Object>> approveCaseCreation(
+            @PathVariable String taskId,
+            @RequestBody ApprovalRequest request) {
+        
+        try {
+            // Validate supervisor permissions
+            if (!"admin".equals(request.getApprovedBy())) {
+                return ResponseEntity.badRequest().body(Map.of("error", "Only supervisors can approve cases"));
+            }
+            
+            // Get the task to validate it's an approval task
+            Task task = taskService.getTaskById(taskId);
+            if (task == null) {
+                return ResponseEntity.notFound().build();
+            }
+            
+            // Get case ID from task variables or task name
+            UUID caseId = UUID.fromString(task.getProcessVariables().get("caseId").toString());
+            
+            Map<String, Object> response = new HashMap<>();
+            
+            if (request.isApproved()) {
+                // APPROVAL FLOW
+                // 1. Complete the approval task
+                Map<String, Object> variables = new HashMap<>();
+                variables.put("approved", true);
+                variables.put("comments", request.getComments());
+                variables.put("approvedBy", request.getApprovedBy());
+                taskService.completeTask(taskId, variables);
+                
+                // 2. Update case status to READY_FOR_ASSIGNMENT
+                // This should be done via the CaseService
+                // Note: You'll need to inject CaseService here
+                
+                // 3. Create "Investigate Case" task
+                taskService.createInvestigateTask(caseId, "investigations"); // Group assignment
+                
+                response.put("message", "Case approved successfully");
+                response.put("status", "APPROVED");
+                response.put("nextTask", "Investigate Case");
+                
+            } else {
+                // REJECTION FLOW
+                // 1. Complete the approval task with rejection
+                Map<String, Object> variables = new HashMap<>();
+                variables.put("approved", false);
+                variables.put("comments", request.getComments());
+                variables.put("rejectedBy", request.getApprovedBy());
+                taskService.completeTask(taskId, variables);
+                
+                // 2. Update case status back to DRAFT
+                // This should be done via the CaseService
+                
+                // 3. Create "Complete Case Creation" task and assign back to original user
+                String originalUser = task.getProcessVariables().get("originalCreator").toString();
+                taskService.createCompleteTaskForUser(caseId, originalUser);
+                
+                response.put("message", "Case rejected and returned to creator");
+                response.put("status", "REJECTED");
+                response.put("nextTask", "Complete Case Creation");
+                response.put("assignedTo", originalUser);
+            }
+            
+            return ResponseEntity.ok(response);
+            
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body(Map.of("error", "Error processing approval: " + e.getMessage()));
+        }
     }
-    
-    /**
-     * Get all database tasks (Admin only)
-     * GET /api/tasks/all
-     */
-    @GetMapping("/all")
-    public ResponseEntity<List<TaskModel>> getAllTasks() {
-        List<TaskModel> tasks = taskService.getAllTasks();
-        return ResponseEntity.ok(tasks);
-    }
-    
+
     // DTO for task approval
     public static class ApprovalTaskRequest {
         private boolean approved;
@@ -257,5 +313,20 @@ public class TaskController {
         
         public String getPriority() { return priority; }
         public void setPriority(String priority) { this.priority = priority; }
+    }
+    
+    // DTO for approval requests
+    public static class ApprovalRequest {
+        private boolean approved;
+        private String comments;
+        private String approvedBy;
+        
+        // Getters and setters
+        public boolean isApproved() { return approved; }
+        public void setApproved(boolean approved) { this.approved = approved; }
+        public String getComments() { return comments; }
+        public void setComments(String comments) { this.comments = comments; }
+        public String getApprovedBy() { return approvedBy; }
+        public void setApprovedBy(String approvedBy) { this.approvedBy = approvedBy; }
     }
 }
