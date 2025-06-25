@@ -440,6 +440,16 @@ function displayCases(cases) {
                         <i class="fas fa-edit"></i> Complete Case
                     </button>` : ''
                 }
+                ${(caseItem.status === 'DRAFT' || caseItem.createdBy === currentUser || hasPermission('VIEW_ALL_CASES')) ? 
+                    `<button class="btn btn-primary btn-sm" onclick="event.stopPropagation(); editCaseDetails('${caseItem.id}')">
+                        <i class="fas fa-edit"></i> Edit
+                    </button>` : ''
+                }
+                ${(caseItem.status === 'DRAFT' || caseItem.createdBy === currentUser || hasPermission('VIEW_ALL_CASES')) ? 
+                    `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); deleteCase('${caseItem.id}', '${caseItem.caseNumber}')">
+                        <i class="fas fa-trash"></i> Delete
+                    </button>` : ''
+                }
                 <button class="btn btn-info btn-sm" onclick="event.stopPropagation(); showCaseDetails('${caseItem.id}')">
                     <i class="fas fa-eye"></i> View Details
                 </button>
@@ -1173,138 +1183,54 @@ async function editCase(caseId) {
 }
 
 /**
- * Populate form with existing case data
+ * Edit case details (general editing, not case completion)
  */
-function populateFormForEdit(caseItem) {
-    console.log('Populating form with case data:', caseItem);
-    
-    const form = document.getElementById('case-form');
-    if (!form) {
-        console.error('Case form not found');
-        return;
-    }
-    
-    // Populate form fields
-    const fields = {
-        'caseType': caseItem.caseType,
-        'priority': caseItem.priority,
-        'entity': caseItem.entity,
-        'alertId': caseItem.alertId,
-        'description': caseItem.description,
-        'riskScore': caseItem.riskScore,
-        'typology': caseItem.typology
-    };
-    
-    Object.entries(fields).forEach(([fieldName, value]) => {
-        const field = form.elements[fieldName];
-        if (field && value !== null && value !== undefined) {
-            field.value = value;
-            console.log(`Set ${fieldName} to:`, value);
+async function editCaseDetails(caseId) {
+    try {
+        const caseItem = await apiRequest(`/cases/${caseId}`);
+        
+        // Check permissions
+        if (caseItem.createdBy !== currentUser && !hasPermission('VIEW_ALL_CASES')) {
+            showAlert('You can only edit cases you created');
+            return;
         }
-    });
+        
+        // Load case into form for editing
+        populateFormForEdit(caseItem);
+        showSection('create-case');
+        
+        // Set form to edit mode
+        const headerElement = document.querySelector('#create-case .section-header h2');
+        const submitButton = document.getElementById('submit-btn');
+        const form = document.getElementById('case-form');
+        
+        if (headerElement) headerElement.innerHTML = '<i class="fas fa-edit"></i> Edit Case';
+        if (submitButton) submitButton.innerHTML = '<i class="fas fa-save"></i> Update Case';
+        if (form) {
+            form.dataset.editingCaseId = caseId;
+            form.dataset.editMode = 'update';
+        }
+        
+        showSuccess('Case loaded for editing.');
+        
+    } catch (error) {
+        console.error('Error loading case for edit:', error);
+        showAlert(`Error loading case: ${error.message}`);
+    }
 }
 
-// Function to view case from task
-async function viewCaseFromTask(caseId) {
+/**
+ * Delete a case with confirmation
+ */
+async function deleteCase(caseId, caseNumber) {
+    if (!confirm(`Delete case ${caseNumber}? This cannot be undone.`)) return;
+    
     try {
-        // Switch to cases section and show the specific case
-        showSection('cases');
+        await apiRequest(`/cases/${caseId}?deletedBy=${currentUser}`, { method: 'DELETE' });
+        showSuccess(`Case ${caseNumber} deleted successfully!`);
         await loadCases();
-        
-        // Find and show the case details
-        setTimeout(() => {
-            showCaseDetails(caseId);
-        }, 500); // Small delay to ensure cases are loaded
-        
     } catch (error) {
-        console.error('Error viewing case from task:', error);
-        showAlert(`Error viewing case: ${error.message}`);
-    }
-}
-
-// Event Listeners
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize role-based UI
-    updateUIBasedOnRole();
-    
-    // Navigation event listeners
-    document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            showSection(btn.dataset.section);
-        });
-    });
-    
-    // Modal close event listeners
-    document.getElementById('case-modal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeModal();
-        }
-    });
-    
-    // Form input event listeners to clear errors
-    document.querySelectorAll('#case-form input, #case-form select, #case-form textarea').forEach(input => {
-        input.addEventListener('input', function() {
-            const formGroup = this.closest('.form-group');
-            if (formGroup.classList.contains('error')) {
-                formGroup.classList.remove('error');
-                formGroup.querySelector('.error-message').textContent = '';
-            }
-        });
-    });
-    
-    // Initial load
-    loadDashboard();
-});
-
-// Test connection function
-async function testConnection() {
-    try {
-        const result = await apiRequest('/cases/test');
-        showSuccess(`Backend connection successful! ${result.message}`);
-        console.log('Connection test result:', result);
-    } catch (error) {
-        showAlert(`Backend connection failed: ${error.message}`);
-        console.error('Connection test failed:', error);
-    }
-}
-
-// Add test button to console
-console.log('Alert Detection System UI loaded!');
-console.log('Run testConnection() to test backend connectivity');
-console.log('Backend URL:', API_BASE_URL);
-
-// Function to show role-specific help and capabilities
-function updateRoleHelp() {
-    const roleHelp = document.getElementById('role-help');
-    if (!roleHelp) return;
-    
-    const userRole = currentUserData.role;
-    
-    if (userRole === USER_ROLES.ANALYST) {
-        roleHelp.innerHTML = `
-            <h5><i class="fas fa-user"></i> Your Role: Analyst</h5>
-            <p><strong>What you can do:</strong></p>
-            <ul>
-                <li>Create new cases (draft or complete)</li>
-                <li>Complete tasks assigned to you</li>
-                <li>View and edit your own cases</li>
-                <li>See cases you've created in Dashboard and Cases sections</li>
-            </ul>
-            <p><strong>Note:</strong> High-priority cases (HIGH/CRITICAL) or cases with risk score > 80 require admin approval.</p>
-        `;
-    } else if (userRole === USER_ROLES.ADMIN) {
-        roleHelp.innerHTML = `
-            <h5><i class="fas fa-shield-alt"></i> Your Role: Admin</h5>
-            <p><strong>What you can do:</strong></p>
-            <ul>
-                <li>Create new cases</li>
-                <li>View and manage ALL cases from all users</li>
-                <li>Approve or reject case creation requests</li>
-                <li>Assign tasks to users</li>
-                <li>View tasks for any user</li>
-                <li>Access the Approvals section</li>
-            </ul>
-            <p><strong>Note:</strong> You have full administrative access to the system.</p>
-        `;
+        console.error('Error deleting case:', error);
+        showAlert(`Error deleting case: ${error.message}`);
     }
 }

@@ -9,6 +9,7 @@ import java.util.UUID;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
+import org.springframework.web.bind.annotation.DeleteMapping;
 import org.springframework.web.bind.annotation.GetMapping;
 import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.PostMapping;
@@ -183,6 +184,47 @@ public class CaseController {
         }
     }
     
+    /**
+     * 6. DELETE CASE - Soft delete by marking as deleted
+     * DELETE /api/cases/{caseId}
+     */
+    @DeleteMapping("/{caseId}")
+    public ResponseEntity<Object> deleteCase(@PathVariable UUID caseId) {
+        Optional<CaseModel> existingCase = caseService.getCaseById(caseId);
+        if (existingCase.isEmpty()) {
+            return ResponseEntity.notFound().build();
+        }
+        
+        caseService.deleteCase(caseId);
+        return ResponseEntity.ok().build();
+    }
+    
+    /**
+     * 6. DELETE CASE
+     * DELETE /api/cases/{caseId}?deletedBy=user
+     */
+    @DeleteMapping("/{caseId}")
+    public ResponseEntity<?> deleteCase(
+            @PathVariable UUID caseId,
+            @RequestParam(required = false, defaultValue = "user") String deletedBy) {
+        
+        try {
+            caseService.deleteCase(caseId, deletedBy);
+            Map<String, String> response = new HashMap<>();
+            response.put("message", "Case deleted successfully");
+            return ResponseEntity.ok(response);
+            
+        } catch (IllegalArgumentException e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", e.getMessage());
+            return ResponseEntity.badRequest().body(error);
+        } catch (Exception e) {
+            Map<String, String> error = new HashMap<>();
+            error.put("error", "Error deleting case: " + e.getMessage());
+            return ResponseEntity.internalServerError().body(error);
+        }
+    }
+
     // Helper method to convert Map to DTO
     private CaseRequestDto mapToDto(Map<String, Object> requestBody) {
         CaseRequestDto dto = new CaseRequestDto();
