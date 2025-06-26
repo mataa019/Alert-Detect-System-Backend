@@ -204,4 +204,29 @@ public class TaskService {
             }
         }
     }
+    
+    // Get TaskModel by string ID (UUID as string)
+    public TaskModel getTaskModelById(String taskId) {
+        try {
+            UUID uuid = UUID.fromString(taskId);
+            return taskRepository.findById(uuid).orElse(null);
+        } catch (Exception e) {
+            return null;
+        }
+    }
+
+    // Validate if the assignee is a valid user (stub, replace with real logic)
+    public boolean isValidAssignee(String assignee) {
+        // TODO: Implement real user validation (e.g., check against user table or directory)
+        return assignee != null && !assignee.trim().isEmpty();
+    }
+
+    // Update task status in the database
+    public void updateTaskStatus(String taskId, String status) {
+        TaskModel task = getTaskModelById(taskId);
+        if (task != null) {
+            task.setStatus(status);
+            taskRepository.save(task);
+        }
+    }
 }

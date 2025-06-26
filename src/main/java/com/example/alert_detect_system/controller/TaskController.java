@@ -268,6 +268,74 @@ public class TaskController {
         return ResponseEntity.ok(taskService.getTasksByAssignee(assignee));
     }
 
+    /**
+     * Assign or reassign a task to a user or work queue (supervisor action).
+     * PUT /api/tasks/assign/{taskId}
+     *
+     * Acceptance Criteria:
+     * - Only non-completed tasks can be reassigned.
+     * - Tasks can be claimed, unassigned, or reassigned.
+     * - Assignments must update task status to either “ASSIGNED” or “UNASSIGNED”.
+     * - Reassignment must notify both the old and new owners (if applicable).
+     * - Invalid target users must be rejected with a proper error message.
+     * - Logs (event, audit, system) must record all actions.
+     */
+    @PutMapping("/assign/{taskId}")
+    public ResponseEntity<?> assignOrReassignTask(
+            @PathVariable String taskId,
+            @RequestBody Map<String, Object> requestBody) {
+        try {
+            // Validate input
+            String newAssignee = (String) requestBody.get("assignee");
+            String performedBy = (String) requestBody.getOrDefault("performedBy", "supervisor");
+            if (newAssignee == null || newAssignee.trim().isEmpty()) {
+                return ResponseEntity.badRequest().body("Assignee is required");
+            }
+            // Get the task
+            TaskModel task = taskService.getTaskModelById(taskId);
+            if (task == null) {
+                return ResponseEntity.badRequest().body("Task not found");
+            }
+            // Only allow non-completed tasks
+            if ("COMPLETED".equalsIgnoreCase(task.getStatus())) {
+                return ResponseEntity.badRequest().body("Cannot reassign a completed task");
+            }
+            String oldAssignee = task.getAssignee();
+            // Validate new assignee (implement your own user validation logic)
+            if (!taskService.isValidAssignee(newAssignee)) {
+                return ResponseEntity.badRequest().body("Invalid target user");
+            }
+            // Update task assignment
+            taskService.assignTask(taskId, newAssignee);
+            // Update status
+            if (newAssignee == null || newAssignee.trim().isEmpty()) {
+                taskService.updateTaskStatus(taskId, "UNASSIGNED");
+            } else {
+                taskService.updateTaskStatus(taskId, "ASSIGNED");
+            }
+            // Audit log
+            auditService.logTaskAction(taskId, "TASK_REASSIGNED", performedBy,
+                "Task reassigned from " + (oldAssignee != null ? oldAssignee : "unassigned") + " to " + newAssignee);
+            // Notification (stub)
+            if (oldAssignee != null && !oldAssignee.equals(newAssignee)) {
+                // Notify old assignee
+                System.out.println("Notification: Task " + taskId + " has been reassigned from you to " + newAssignee);
+            }
+            // Notify new assignee
+            System.out.println("Notification: Task " + taskId + " has been assigned to you.");
+            // Response
+            Map<String, Object> response = new HashMap<>();
+            response.put("message", "Task assigned/reassigned successfully");
+            response.put("taskId", taskId);
+            response.put("oldAssignee", oldAssignee);
+            response.put("newAssignee", newAssignee);
+            response.put("status", newAssignee == null || newAssignee.trim().isEmpty() ? "UNASSIGNED" : "ASSIGNED");
+            return ResponseEntity.ok(response);
+        } catch (Exception e) {
+            return ResponseEntity.badRequest().body("Error: " + e.getMessage());
+        }
+    }
+
     // DTO for task creation
     public static class CreateTaskRequest {
         private String title;

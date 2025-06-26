@@ -39,4 +39,16 @@ public class AuditService {
     public List<AuditLogModel> getCaseAuditLogs(UUID caseId) {
         return auditLogRepository.findByCaseIdOrderByTimestampDesc(caseId);
     }
+    
+    // Log task-level actions (for assignment/reassignment)
+    public void logTaskAction(String taskId, String action, String performedBy, String details) {
+        try {
+            AuditLogModel auditLog = new AuditLogModel(null, action, performedBy, details);
+            auditLog.setTaskId(taskId);
+            auditLogRepository.save(auditLog);
+            logger.info("Audit log created - Task: {}, Action: {}, User: {}", taskId, action, performedBy);
+        } catch (Exception e) {
+            logger.error("Failed to create audit log for task: {}", taskId, e);
+        }
+    }
 }
