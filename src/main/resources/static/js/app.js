@@ -1053,7 +1053,11 @@ async function createCase(event) {
         }
     }
     
-    // Add current user information
+    // Add current user information (robust check)
+    if (!currentUser || !USERS[currentUser]) {
+        showAlert('Invalid or missing user. Please select a valid user before creating a case.');
+        return;
+    }
     requestBody.createdBy = currentUser;
     requestBody.assignee = currentUser; // Initially assign to creator
     
