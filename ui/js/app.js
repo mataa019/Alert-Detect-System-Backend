@@ -557,49 +557,30 @@ function displayTasks(flowableTasks = [], dbTasks = []) {
     // Display Database Tasks (Case-related tasks)
     if (dbTasks.length > 0) {
         html += '<h3><i class="fas fa-clipboard-list"></i> Case Management Tasks</h3>';
-        html += dbTasks.map(task => `
+        html += dbTasks.map(task => {
+            const canAssign = hasPermission('ASSIGN_TASK') && task.status !== 'COMPLETED';
+            return `
             <div class="task-card task-db">
                 <div class="task-header">
                     <div class="task-name">${task.title || task.taskName}</div>
                     <div class="task-status status-${(task.status || '').toLowerCase()}">${task.status || 'Open'}</div>
                 </div>
                 <div class="task-details">
-                    <div class="task-detail">
-                        <label>Task Type</label>
-                        <span>${task.title || task.taskName}</span>
-                    </div>
-                    <div class="task-detail">
-                        <label>Case ID</label>
-                        <span>${task.caseId}</span>
-                    </div>
-                    <div class="task-detail">
-                        <label>Priority</label>
-                        <span class="priority-${(task.priority || 'normal').toLowerCase()}">${task.priority || 'Normal'}</span>
-                    </div>
-                    <div class="task-detail">
-                        <label>Assigned To</label>
-                        <span>${task.assignee || 'Unassigned'}</span>
-                    </div>
-                    <div class="task-detail">
-                        <label>Created</label>
-                        <span>${formatDate(task.createdAt)}</span>
-                    </div>
+                    <div class="task-detail"><label>Task Type</label><span>${task.title || task.taskName}</span></div>
+                    <div class="task-detail"><label>Case ID</label><span>${task.caseId}</span></div>
+                    <div class="task-detail"><label>Priority</label><span class="priority-${(task.priority || 'normal').toLowerCase()}">${task.priority || 'Normal'}</span></div>
+                    <div class="task-detail"><label>Assigned To</label><span>${task.assignee || 'Unassigned'}</span></div>
+                    <div class="task-detail"><label>Created</label><span>${formatDate(task.createdAt)}</span></div>
                 </div>
-                <div class="task-description">
-                    ${task.description || 'No description provided'}
-                </div>
+                <div class="task-description">${task.description || 'No description provided'}</div>
                 <div class="task-actions">
-                    ${task.status === 'OPEN' ? `
-                        <button class="btn btn-primary btn-sm" onclick="completeTask('${task.id}', 'database')">
-                            <i class="fas fa-check"></i> Complete Task
-                        </button>
-                    ` : ''}
-                    <button class="btn btn-info btn-sm" onclick="viewCaseFromTask('${task.caseId}')">
-                        <i class="fas fa-folder-open"></i> View Case
-                    </button>
+                    ${task.status === 'OPEN' ? `<button class="btn btn-primary btn-sm" onclick="completeTask('${task.id}', 'database')"><i class="fas fa-check"></i> Complete Task</button>` : ''}
+                    <button class="btn btn-info btn-sm" onclick="viewCaseFromTask('${task.caseId}')"><i class="fas fa-folder-open"></i> View Case</button>
+                    ${canAssign ? `<button class="btn btn-warning btn-sm" onclick="openAssignModal('${task.id}')"><i class='fas fa-user-edit'></i> Assign/Reassign</button>` : ''}
                 </div>
             </div>
-        `).join('');
+            `;
+        }).join('');
     }
     
     // Display Flowable Tasks (BPMN Workflow tasks)
@@ -612,36 +593,15 @@ function displayTasks(flowableTasks = [], dbTasks = []) {
                     <div class="task-status status-active">Active</div>
                 </div>
                 <div class="task-details">
-                    <div class="task-detail">
-                        <label>Task ID</label>
-                        <span>${task.id}</span>
-                    </div>
-                    <div class="task-detail">
-                        <label>Process Instance</label>
-                        <span>${task.processInstanceId}</span>
-                    </div>
-                    <div class="task-detail">
-                        <label>Assignee</label>
-                        <span>${task.assignee || 'Unassigned'}</span>
-                    </div>
-                    <div class="task-detail">
-                        <label>Created</label>
-                        <span>${formatDate(task.createTime)}</span>
-                    </div>
-                    ${task.dueDate ? `
-                    <div class="task-detail">
-                        <label>Due Date</label>
-                        <span>${formatDate(task.dueDate)}</span>
-                    </div>
-                    ` : ''}
+                    <div class="task-detail"><label>Task ID</label><span>${task.id}</span></div>
+                    <div class="task-detail"><label>Process Instance</label><span>${task.processInstanceId}</span></div>
+                    <div class="task-detail"><label>Assignee</label><span>${task.assignee || 'Unassigned'}</span></div>
+                    <div class="task-detail"><label>Created</label><span>${formatDate(task.createTime)}</span></div>
+                    ${task.dueDate ? `<div class="task-detail"><label>Due Date</label><span>${formatDate(task.dueDate)}</span></div>` : ''}
                 </div>
-                <div class="task-description">
-                    ${task.description || 'BPMN workflow task'}
-                </div>
+                <div class="task-description">${task.description || 'BPMN workflow task'}</div>
                 <div class="task-actions">
-                    <button class="btn btn-success btn-sm" onclick="completeTask('${task.id}', 'flowable')">
-                        <i class="fas fa-check"></i> Complete Workflow Task
-                    </button>
+                    <button class="btn btn-success btn-sm" onclick="completeTask('${task.id}', 'flowable')"><i class="fas fa-check"></i> Complete Workflow Task</button>
                 </div>
             </div>
         `).join('');
@@ -1223,21 +1183,15 @@ function setupAssignForm() {
       return;
     }
     try {
-      const res = await fetch(`/api/tasks/assign/${taskId}`, {
+      await apiRequest(`/tasks/assign/${taskId}`, {
         method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ assignee })
+        body: JSON.stringify({ assignee, performedBy: currentUser })
       });
-      if (!res.ok) {
-        const err = await res.text();
-        showAssignError(err);
-        return;
-      }
       closeAssignModal();
-      alert('Task assigned/reassigned successfully');
+      showSuccess('Task assigned/reassigned successfully');
       loadTasks();
     } catch (err) {
-      showAssignError('Error assigning task');
+      showAssignError(err.message || 'Error assigning task');
     }
   };
 }
@@ -1250,20 +1204,7 @@ function showAssignError(msg) {
   }
 }
 
-// Load tasks for supervisor view
-async function loadTasks() {
-  // You may want to filter by group or all tasks
-  const res = await fetch('/api/tasks/by-assignee/supervisor');
-  if (!res.ok) return;
-  const tasks = await res.json();
-  renderTaskList(tasks);
-}
-
-// On page load
-window.addEventListener('DOMContentLoaded', () => {
-  loadTasks();
-  setTimeout(setupAssignForm, 500); // Wait for modal HTML to load
-});
+document.addEventListener('DOMContentLoaded', setupAssignForm);
 
 // Test connection function
 async function testConnection() {
