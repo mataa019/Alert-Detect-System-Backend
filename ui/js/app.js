@@ -526,6 +526,12 @@ async function loadTasks() {
             apiRequest(`/tasks/by-assignee/${actualAssignee}`).catch(() => []) // Database tasks
         ]);
         
+        // Debug output: show raw API response in UI
+        const debugDiv = document.getElementById('tasks-debug');
+        if (debugDiv) {
+            debugDiv.innerHTML = `<pre style='background:#f8f8f8; color:#333; padding:8px; border-radius:4px; max-height:200px; overflow:auto;'>DB Tasks: ${JSON.stringify(dbTasks, null, 2)}\nFlowable Tasks: ${JSON.stringify(flowableTasks, null, 2)}</pre>`;
+        }
+        
         displayTasks(flowableTasks, dbTasks);
     } catch (error) {
         console.error('Error loading tasks:', error);
