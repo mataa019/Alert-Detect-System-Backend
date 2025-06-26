@@ -1,0 +1,51 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Supervisor/Admin Dashboard</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="header">
+    <div class="header-content">
+      <div class="logo">🚨 Alert Detect System</div>
+      <div class="user-info" id="userInfo"></div>
+    </div>
+  </div>
+  <div class="main-content">
+    <div class="section-header">
+      <h2>Supervisor/Admin Dashboard</h2>
+      <div class="filter-bar">
+        <select id="statusFilter">
+          <option value="">All Statuses</option>
+          <option value="ASSIGNED">Assigned</option>
+          <option value="UNASSIGNED">Unassigned</option>
+          <option value="COMPLETED">Completed</option>
+        </select>
+        <input id="groupFilter" placeholder="Group ID" type="text">
+        <input id="assigneeFilter" placeholder="Assignee" type="text">
+        <button class="btn btn-primary" onclick="loadTasks()">Apply Filters</button>
+      </div>
+    </div>
+    <table class="table" id="tasksTable">
+      <thead>
+        <tr>
+          <th>ID</th><th>Title</th><th>Status</th><th>Assignee</th><th>Group</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div id="auditLogModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Audit Log</h3>
+          <button class="close-btn" onclick="closeAuditModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="auditLogBody"></div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="js/admin.js"></script>
+</body>
+</html>

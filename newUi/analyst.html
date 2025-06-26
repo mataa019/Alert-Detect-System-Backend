@@ -1,0 +1,40 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Analyst/Investigator Dashboard</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="header">
+    <div class="header-content">
+      <div class="logo">🚨 Alert Detect System</div>
+      <div class="user-info" id="userInfo"></div>
+    </div>
+  </div>
+  <div class="main-content">
+    <div class="section-header">
+      <h2>Analyst/Investigator Dashboard</h2>
+    </div>
+    <table class="table" id="tasksTable">
+      <thead>
+        <tr>
+          <th>ID</th><th>Title</th><th>Status</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div id="taskDetailsModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Task Details</h3>
+          <button class="close-btn" onclick="closeTaskModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="taskDetailsBody"></div>
+      </div>
+    </div>
+  </div>
+  <script type="module" src="js/analyst.js"></script>
+</body>
+</html>

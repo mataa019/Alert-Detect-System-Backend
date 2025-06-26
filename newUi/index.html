@@ -1,0 +1,48 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alert Detect System - Login</title>
+  <link rel="stylesheet" href="css/styles.css">
+</head>
+<body>
+  <div class="header">
+    <div class="header-content">
+      <div class="logo">🚨 Alert Detect System</div>
+    </div>
+  </div>
+  <div class="main-content" style="max-width: 400px; margin-top: 4rem;">
+    <h2 style="margin-bottom:2rem;">Select Role</h2>
+    <form id="roleForm">
+      <div class="form-group" style="margin-bottom:1.5rem;">
+        <label for="role">Login as:</label>
+        <select id="role" name="role" required>
+          <option value="">-- Select Role --</option>
+          <option value="analyst">Analyst/Investigator</option>
+          <option value="supervisor">Supervisor</option>
+          <option value="admin">Admin</option>
+        </select>
+      </div>
+      <div class="form-group" style="margin-bottom:2rem;">
+        <label for="username">Username:</label>
+        <input type="text" id="username" name="username" required placeholder="Enter your username">
+      </div>
+      <button class="btn btn-primary" type="submit" style="width:100%;">Continue</button>
+    </form>
+  </div>
+  <script>
+    document.getElementById('roleForm').onsubmit = function(e) {
+      e.preventDefault();
+      const role = document.getElementById('role').value;
+      const username = document.getElementById('username').value;
+      if (!role || !username) return;
+      if (role === 'analyst') {
+        window.location.href = `analyst.html?user=${encodeURIComponent(username)}`;
+      } else {
+        window.location.href = `admin.html?role=${role}&user=${encodeURIComponent(username)}`;
+      }
+    };
+  </script>
+</body>
+</html>
