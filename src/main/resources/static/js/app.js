@@ -779,7 +779,6 @@ function displayPendingApprovals(cases) {
     }
     
     container.innerHTML = cases.map(caseItem => {
-        // Assume caseItem.taskId is available for the approval task
         const showActions = hasPermission('APPROVE_CASE') && caseItem.status === 'PENDING_CASE_CREATION_APPROVAL' && caseItem.taskId;
         return `
         <div class="case-card approval-card">
@@ -816,13 +815,11 @@ function displayPendingApprovals(cases) {
             <div class="case-description">
                 <strong>Description:</strong>
                 <p>${caseItem.description || 'No description'}</p>
-            </div>            <div class="approval-actions">
+            </div>
+            <div class="approval-actions">
                 ${showActions ? `
-                    <button class="btn btn-success btn-sm" onclick="handleApprovalTask('${caseItem.taskId}','${caseItem.id}',true)">
-                        <i class="fas fa-check"></i> Approve
-                    </button>
-                    <button class="btn btn-danger btn-sm" onclick="handleApprovalTask('${caseItem.taskId}','${caseItem.id}',false)">
-                        <i class="fas fa-times"></i> Reject
+                    <button class="btn btn-success btn-sm" onclick="showSupervisorApprovalModal('${caseItem.id}','${caseItem.taskId}')">
+                        <i class="fas fa-check"></i> Review & Approve/Reject
                     </button>
                 ` : `
                     <div class="permission-notice">
@@ -889,7 +886,7 @@ async function approveCase(caseId, approved) {
 }
 
 // Supervisor Approval Workflow
-async function handleApprovalTask(taskId, caseId, approve) {
+async function handleApprovalTask(taskId, caseId, approve, comments = '') {
     try {
         // Fetch case and task details
         const [caseItem, taskItem] = await Promise.all([
@@ -913,12 +910,6 @@ async function handleApprovalTask(taskId, caseId, approve) {
                 showAlert('You must claim the task to proceed.');
                 return;
             }
-        }
-        let comments = '';
-        if (approve) {
-            comments = prompt('Enter approval comments (optional):') || '';
-        } else {
-            comments = prompt('Enter rejection reason (optional):') || '';
         }
         // Update the approval task status
         await apiRequest(`/task/update/${taskId}`, {
@@ -964,6 +955,130 @@ async function handleApprovalTask(taskId, caseId, approve) {
         }
         console.error('Error processing approval task:', error);
     }
+}
+
+// Supervisor Approval Modal
+function showSupervisorApprovalModal(caseId, taskId) {
+    apiRequest(`/cases/${caseId}`)
+        .then(caseItem => {
+            const modalBody = document.getElementById('modal-body');
+            modalBody.innerHTML = `
+                <div class="case-details-modal">
+                    <h3>Case Approval Review</h3>
+                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                        <div class="case-detail"><label>Case Number</label><span>${caseItem.caseNumber}</span></div>
+                        <div class="case-detail"><label>Status</label><span class="case-status status-${caseItem.status.toLowerCase()}">${formatStatus(caseItem.status)}</span></div>
+                        <div class="case-detail"><label>Type</label><span>${caseItem.caseType || 'N/A'}</span></div>
+                        <div class="case-detail"><label>Priority</label><span>${caseItem.priority || 'N/A'}</span></div>
+                        <div class="case-detail"><label>Risk Score</label><span>${caseItem.riskScore || 'N/A'}</span></div>
+                        <div class="case-detail"><label>Entity</label><span>${caseItem.entity || 'N/A'}</span></div>
+                        <div class="case-detail"><label>Alert ID</label><span>${caseItem.alertId || 'N/A'}</span></div>
+                        <div class="case-detail"><label>Typology</label><span>${caseItem.typology || 'N/A'}</span></div>
+                        <div class="case-detail"><label>Created By</label><span>${caseItem.createdBy}</span></div>
+                        <div class="case-detail"><label>Created Date</label><span>${formatDate(caseItem.createdDate)}</span></div>
+                    </div>
+                    <div class="case-detail" style="margin-bottom: 1rem;">
+                        <label>Description</label>
+                        <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px; margin-top: 0.5rem;">${caseItem.description || 'No description provided'}</div>
+                    </div>
+                    <div class="approval-comments-group">
+                        <label for="approval-comments">Comments (optional):</label>
+                        <textarea id="approval-comments" rows="3" style="width:100%;"></textarea>
+                    </div>
+                    <div class="approval-actions-modal" style="margin-top:1.5rem; display:flex; gap:1rem;">
+                        <button class="btn btn-success" onclick="submitSupervisorApproval('${taskId}','${caseId}',true)"><i class='fas fa-check'></i> Approve</button>
+                        <button class="btn btn-danger" onclick="submitSupervisorApproval('${taskId}','${caseId}',false)"><i class='fas fa-times'></i> Reject</button>
+                        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                    </div>
+                </div>
+            `;
+            document.getElementById('modal-title').textContent = `Supervisor Approval - ${caseItem.caseNumber}`;
+            document.getElementById('case-modal').style.display = 'flex';
+        })
+        .catch(error => {
+            showAlert('Error loading case details for approval: ' + error.message);
+        });
+}
+
+window.showSupervisorApprovalModal = showSupervisorApprovalModal;
+
+async function submitSupervisorApproval(taskId, caseId, approve) {
+    const comments = document.getElementById('approval-comments').value;
+    await handleApprovalTask(taskId, caseId, approve, comments);
+    closeModal();
+}
+window.submitSupervisorApproval = submitSupervisorApproval;
+
+// Patch displayPendingApprovals to use the modal
+function displayPendingApprovals(cases) {
+    const container = document.getElementById('pending-approvals');
+    
+    if (cases.length === 0) {
+        container.innerHTML = `
+            <div class="empty-state">
+                <i class="fas fa-check-circle"></i>
+                <h3>No Pending Approvals</h3>
+                <p>All cases have been reviewed and approved.</p>
+            </div>
+        `;
+        return;
+    }
+    
+    container.innerHTML = cases.map(caseItem => {
+        const showActions = hasPermission('APPROVE_CASE') && caseItem.status === 'PENDING_CASE_CREATION_APPROVAL' && caseItem.taskId;
+        return `
+        <div class="case-card approval-card">
+            <div class="case-header">
+                <div class="case-number">${caseItem.caseNumber}</div>
+                <div class="case-status status-pending-approval">Pending Approval</div>
+            </div>
+            <div class="case-details">
+                <div class="case-detail">
+                    <label>Type</label>
+                    <span>${caseItem.caseType || 'N/A'}</span>
+                </div>
+                <div class="case-detail">
+                    <label>Priority</label>
+                    <span class="priority-${caseItem.priority?.toLowerCase() || 'normal'}">${caseItem.priority || 'N/A'}</span>
+                </div>
+                <div class="case-detail">
+                    <label>Risk Score</label>
+                    <span class="risk-score-${getRiskLevel(caseItem.riskScore)}">${caseItem.riskScore || 'N/A'}</span>
+                </div>
+                <div class="case-detail">
+                    <label>Created By</label>
+                    <span>${caseItem.createdBy}</span>
+                </div>
+                <div class="case-detail">
+                    <label>Entity</label>
+                    <span>${caseItem.entity || 'N/A'}</span>
+                </div>
+                <div class="case-detail">
+                    <label>Alert ID</label>
+                    <span>${caseItem.alertId || 'N/A'}</span>
+                </div>
+            </div>
+            <div class="case-description">
+                <strong>Description:</strong>
+                <p>${caseItem.description || 'No description'}</p>
+            </div>
+            <div class="approval-actions">
+                ${showActions ? `
+                    <button class="btn btn-success btn-sm" onclick="showSupervisorApprovalModal('${caseItem.id}','${caseItem.taskId}')">
+                        <i class="fas fa-check"></i> Review & Approve/Reject
+                    </button>
+                ` : `
+                    <div class="permission-notice">
+                        <i class="fas fa-info-circle"></i>
+                        You need supervisor privileges to approve cases
+                    </div>
+                `}
+                <button class="btn btn-info btn-sm" onclick="showCaseDetails('${caseItem.id}')">
+                    <i class="fas fa-eye"></i> View Details
+                </button>
+            </div>
+        </div>
+    `}).join('');
 }
 
 // Form Functions
