@@ -85,6 +85,7 @@ window.closeAuditModal = function() {
 window.loadCases = async function() {
   const cases = await api.getAllCases();
   renderCases(cases);
+  loadRecentCases();
 };
 
 function renderCases(cases) {
@@ -106,12 +107,57 @@ function renderCases(cases) {
         <button class="btn btn-secondary" onclick="showCaseDetails('${c.id}')">Details</button>
         <button class="btn btn-primary" onclick="editCase('${c.id}')">Edit</button>
         <button class="btn btn-danger" onclick="abandonCase('${c.id}')">Abandon</button>
+        <button class="btn btn-danger" onclick="deleteCase('${c.id}')">Delete</button>
         <button class="btn btn-secondary" onclick="showAudit('${c.id}')">Audit Log</button>
       </td>
     `;
     tbody.appendChild(tr);
   }
 }
+
+window.renderCases = renderCases; // expose for testing/debug
+
+window.showCreateCaseModal = function() {
+  document.getElementById('caseCreateModal').style.display = 'flex';
+};
+window.closeCaseCreateModal = function() {
+  document.getElementById('caseCreateModal').style.display = 'none';
+};
+window.createCase = async function() {
+  const name = document.getElementById('createCaseName').value;
+  const description = document.getElementById('createCaseDescription').value;
+  const assignee = document.getElementById('createCaseAssignee').value;
+  try {
+    await api.createCase({ caseName: name, description, assignee, createdBy: user });
+    closeCaseCreateModal();
+    loadCases();
+  } catch (e) {
+    alert(e.message);
+  }
+};
+window.deleteCase = async function(caseId) {
+  if (!confirm('Are you sure you want to delete this case?')) return;
+  try {
+    await api.deleteCase(caseId, user);
+    loadCases();
+  } catch (e) {
+    alert(e.message);
+  }
+};
+window.loadRecentCases = async function() {
+  const recent = await api.getRecentCases(10, user);
+  const ul = document.getElementById('recentCasesList');
+  ul.innerHTML = '';
+  if (!recent.length) {
+    ul.innerHTML = '<li class="empty-state">No recent cases.</li>';
+    return;
+  }
+  for (const c of recent) {
+    const li = document.createElement('li');
+    li.textContent = `${c.caseName || c.title} (${c.status})`;
+    ul.appendChild(li);
+  }
+};
 
 window.showCaseDetails = async function(caseId) {
   const c = await api.getCaseById(caseId);
