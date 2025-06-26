@@ -28,6 +28,7 @@
         <button class="btn btn-primary" onclick="loadTasks()">Apply Filters</button>
       </div>
     </div>
+    <h3>Tasks</h3>
     <table class="table" id="tasksTable">
       <thead>
         <tr>
@@ -43,6 +44,50 @@
           <button class="close-btn" onclick="closeAuditModal()">&times;</button>
         </div>
         <div class="modal-body" id="auditLogBody"></div>
+      </div>
+    </div>
+    <hr>
+    <h3>Cases</h3>
+    <table class="table" id="casesTable">
+      <thead>
+        <tr>
+          <th>ID</th><th>Name</th><th>Status</th><th>Assignee</th><th>Created</th><th>Actions</th>
+        </tr>
+      </thead>
+      <tbody></tbody>
+    </table>
+    <div id="caseDetailsModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Case Details</h3>
+          <button class="close-btn" onclick="closeCaseModal()">&times;</button>
+        </div>
+        <div class="modal-body" id="caseDetailsBody"></div>
+      </div>
+    </div>
+    <div id="caseEditModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Edit Case</h3>
+          <button class="close-btn" onclick="closeCaseEditModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="caseEditForm" onsubmit="event.preventDefault(); saveCaseEdit();">
+            <input type="hidden" name="caseId">
+            <div class="form-group">
+              <label for="caseName">Name</label>
+              <input type="text" name="caseName" required>
+            </div>
+            <div class="form-group">
+              <label for="description">Description</label>
+              <textarea name="description" rows="3"></textarea>
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Save</button>
+              <button type="button" class="btn btn-secondary" onclick="closeCaseEditModal()">Cancel</button>
+            </div>
+          </form>
+        </div>
       </div>
     </div>
   </div>
