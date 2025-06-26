@@ -750,7 +750,8 @@ async function showTaskDetails(taskId) {
 // Approval Functions
 async function loadApprovals() {
     try {
-        const pendingCases = await apiRequest('/cases/pending-approval');
+        // Use the correct endpoint for pending approvals
+        const pendingCases = await apiRequest('/cases?pendingApproval=true');
         displayPendingApprovals(pendingCases);
     } catch (error) {
         console.error('Error loading pending approvals:', error);

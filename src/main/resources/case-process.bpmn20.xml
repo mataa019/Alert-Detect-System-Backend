@@ -11,7 +11,7 @@
     
     <!-- Approval Path -->
     <userTask id="approveCase" name="Approve Case Creation" 
-              flowable:candidateGroups="admin">
+              flowable:candidateGroups="supervisor">
       <documentation>Review and approve case creation</documentation>
     </userTask>
     
