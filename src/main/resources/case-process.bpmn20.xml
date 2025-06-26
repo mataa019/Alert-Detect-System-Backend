@@ -39,3 +39,5 @@
     
   </process>
 </definitions>
+<!-- The process is valid and implements a conditional approval workflow.
+     If you want to check for something specific, please clarify your requirement. -->
