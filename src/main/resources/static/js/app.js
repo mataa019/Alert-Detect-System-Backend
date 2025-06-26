@@ -355,8 +355,12 @@ async function refreshDashboard() {
 async function loadCases() {
     try {
         const cases = await apiRequest('/cases');
-        allCases = cases;
-        displayCases(cases);
+        let filteredCases = cases;
+        if (currentUserData.role === USER_ROLES.ANALYST) {
+            filteredCases = cases.filter(c => c.createdBy === currentUser);
+        }
+        allCases = filteredCases;
+        displayCases(filteredCases);
     } catch (error) {
         console.error('Error loading cases:', error);
         document.getElementById('cases-container').innerHTML = `
