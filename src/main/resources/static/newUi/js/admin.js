@@ -124,11 +124,34 @@ window.closeCaseCreateModal = function() {
   document.getElementById('caseCreateModal').style.display = 'none';
 };
 window.createCase = async function() {
-  const name = document.getElementById('createCaseName').value;
+  // Collect and validate all fields
+  const type = document.getElementById('createCaseType').value.trim();
+  const priority = document.getElementById('createPriority').value.trim();
+  const entity = document.getElementById('createEntity').value.trim();
+  const alertId = document.getElementById('createAlertId').value.trim();
+  const typology = document.getElementById('createTypology').value.trim();
+  const riskScore = document.getElementById('createRiskScore').value;
   const description = document.getElementById('createCaseDescription').value;
-  const assignee = document.getElementById('createCaseAssignee').value;
+  const assignee = document.getElementById('createCaseAssignee').value.trim();
+  if (!type || !priority || !entity || !alertId || !typology || !riskScore) {
+    alert('All mandatory fields are required.');
+    return;
+  }
   try {
-    await api.createCase({ caseName: name, description, assignee, createdBy: user });
+    // 1. Create the case
+    const caseData = {
+      caseType: type,
+      priority,
+      entity,
+      alertId,
+      typology,
+      riskScore: parseFloat(riskScore),
+      description,
+      assignee
+    };
+    const createdCase = await api.createCase(caseData);
+    // 2. Create the first task for the case
+    await api.createTaskForCase(createdCase.id, assignee);
     closeCaseCreateModal();
     loadCases();
   } catch (e) {
