@@ -49,6 +49,8 @@ export function getAuditLogs(caseId) {
   return fetch(`/api/audit/${caseId}`).then(r => r.json());
 }
 
+
+
 // CASE API
 const CASE_API = '/api/cases';
 

@@ -8,6 +8,7 @@ document.getElementById('userInfo').innerHTML = `
   <span>${user}</span>
 `;
 
+// --- TASKS ---
 async function loadTasks() {
   const tasks = await api.getTasksByAssignee(user);
   renderTasks(tasks);
@@ -53,4 +54,96 @@ window.closeTaskModal = function() {
   document.getElementById('taskDetailsModal').style.display = 'none';
 };
 
-window.onload = loadTasks;
+// --- CASES ---
+async function loadCases() {
+  const cases = await api.getCasesByAssignee(user);
+  renderCases(cases);
+}
+
+function renderCases(cases) {
+  const tbody = document.querySelector('#casesTable tbody');
+  tbody.innerHTML = '';
+  if (!cases.length) {
+    tbody.innerHTML = '<tr><td colspan="5" class="empty-state">No cases assigned.</td></tr>';
+    return;
+  }
+  for (const c of cases) {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${c.id}</td>
+      <td>${c.caseName || c.title}</td>
+      <td><span class="status-badge status-${c.status}">${c.status}</span></td>
+      <td>${c.createdDate ? new Date(c.createdDate).toLocaleString() : ''}</td>
+      <td>
+        <button class="btn btn-secondary" onclick="showCaseDetails('${c.id}')">Details</button>
+        <button class="btn btn-primary" onclick="editCase('${c.id}')">Edit</button>
+        <button class="btn btn-danger" onclick="abandonCase('${c.id}')">Abandon</button>
+      </td>
+    `;
+    tbody.appendChild(tr);
+  }
+}
+
+window.showCaseDetails = async function(caseId) {
+  const c = await api.getCaseById(caseId);
+  const modal = document.getElementById('caseDetailsModal');
+  const body = document.getElementById('caseDetailsBody');
+  body.innerHTML = `
+    <div><b>Case ID:</b> ${c.id}</div>
+    <div><b>Name:</b> ${c.caseName || c.title}</div>
+    <div><b>Status:</b> <span class="status-badge status-${c.status}">${c.status}</span></div>
+    <div><b>Description:</b> ${c.description || ''}</div>
+    <div><b>Created:</b> ${c.createdDate ? new Date(c.createdDate).toLocaleString() : ''}</div>
+    <div><b>Assignee:</b> ${c.assignee || ''}</div>
+  `;
+  modal.style.display = 'flex';
+};
+
+window.closeCaseModal = function() {
+  document.getElementById('caseDetailsModal').style.display = 'none';
+};
+
+window.editCase = async function(caseId) {
+  const c = await api.getCaseById(caseId);
+  const modal = document.getElementById('caseEditModal');
+  const form = document.getElementById('caseEditForm');
+  form.caseId.value = c.id;
+  form.caseName.value = c.caseName || c.title || '';
+  form.description.value = c.description || '';
+  modal.style.display = 'flex';
+};
+
+window.saveCaseEdit = async function() {
+  const form = document.getElementById('caseEditForm');
+  const caseId = form.caseId.value;
+  const data = {
+    caseName: form.caseName.value,
+    description: form.description.value
+  };
+  try {
+    await api.updateCase(caseId, data);
+    document.getElementById('caseEditModal').style.display = 'none';
+    loadCases();
+  } catch (e) {
+    alert(e.message);
+  }
+};
+
+window.closeCaseEditModal = function() {
+  document.getElementById('caseEditModal').style.display = 'none';
+};
+
+window.abandonCase = async function(caseId) {
+  if (!confirm('Are you sure you want to abandon this case?')) return;
+  try {
+    await api.abandonCase(caseId);
+    loadCases();
+  } catch (e) {
+    alert(e.message);
+  }
+};
+
+window.onload = function() {
+  loadTasks();
+  loadCases();
+};
