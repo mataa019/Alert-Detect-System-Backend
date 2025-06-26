@@ -277,14 +277,16 @@ async function loadDashboard() {
 async function loadCaseStats() {
     try {
         const cases = await apiRequest('/cases');
-        
+        let filteredCases = cases;
+        if (currentUserData.role === USER_ROLES.ANALYST) {
+            filteredCases = cases.filter(c => c.createdBy === currentUser);
+        }
         // Update stats
-        document.getElementById('total-cases').textContent = cases.length;
+        document.getElementById('total-cases').textContent = filteredCases.length;
         document.getElementById('draft-cases').textContent = 
-            cases.filter(c => c.status === 'DRAFT').length;
+            filteredCases.filter(c => c.status === 'DRAFT').length;
         document.getElementById('pending-cases').textContent = 
-            cases.filter(c => c.status === 'PENDING_CASE_CREATION_APPROVAL').length;
-        
+            filteredCases.filter(c => c.status === 'PENDING_CASE_CREATION_APPROVAL').length;
         // Load tasks count
         try {
             const tasks = await apiRequest(`/tasks/my/${currentUser}`);
@@ -292,7 +294,6 @@ async function loadCaseStats() {
         } catch (error) {
             document.getElementById('my-tasks').textContent = '0';
         }
-        
     } catch (error) {
         console.error('Error loading case stats:', error);
         // Set default values on error
@@ -306,10 +307,12 @@ async function loadCaseStats() {
 async function loadRecentCases() {
     try {
         const cases = await apiRequest('/cases');
-        const recentCases = cases.slice(0, 5); // Get last 5 cases
-        
+        let filteredCases = cases;
+        if (currentUserData.role === USER_ROLES.ANALYST) {
+            filteredCases = cases.filter(c => c.createdBy === currentUser);
+        }
+        const recentCases = filteredCases.slice(0, 5); // Get last 5 cases for role
         const container = document.getElementById('recent-cases');
-        
         if (recentCases.length === 0) {
             container.innerHTML = `
                 <div class="empty-state">
@@ -320,7 +323,6 @@ async function loadRecentCases() {
             `;
             return;
         }
-        
         container.innerHTML = recentCases.map(caseItem => `
             <div class="case-card" onclick="showCaseDetails('${caseItem.id}')">
                 <div class="case-header">
@@ -333,7 +335,6 @@ async function loadRecentCases() {
                 </div>
             </div>
         `).join('');
-        
     } catch (error) {
         console.error('Error loading recent cases:', error);
         document.getElementById('recent-cases').innerHTML = `
