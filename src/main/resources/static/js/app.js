@@ -28,7 +28,7 @@ const USER_ROLES = {
 const USERS = {
     'analyst1': { name: 'John Analyst', role: USER_ROLES.ANALYST, email: 'john.analyst@company.com' },
     'analyst2': { name: 'Jane Analyst', role: USER_ROLES.ANALYST, email: 'jane.analyst@company.com' },
-    'supervisor1': { name: 'Mike Supervisor', role: USER_ROLES.SUPERVISOR, email: 'mike.supervisor@company.com' },
+    'SUPERVISOR': { name: 'Mike Supervisor', role: USER_ROLES.SUPERVISOR, email: 'mike.supervisor@company.com' },
     'admin1': { name: 'Sarah Admin', role: USER_ROLES.ADMIN, email: 'sarah.admin@company.com' }
 };
 
