@@ -308,7 +308,7 @@ public class TaskController {
             // Update task assignment
             taskService.assignTask(taskId, newAssignee);
             // Update status
-            if (newAssignee == null || newAssignee.trim().isEmpty()) {
+            if (newAssignee.trim().isEmpty()) {
                 taskService.updateTaskStatus(taskId, "UNASSIGNED");
             } else {
                 taskService.updateTaskStatus(taskId, "ASSIGNED");
@@ -329,7 +329,7 @@ public class TaskController {
             response.put("taskId", taskId);
             response.put("oldAssignee", oldAssignee);
             response.put("newAssignee", newAssignee);
-            response.put("status", newAssignee == null || newAssignee.trim().isEmpty() ? "UNASSIGNED" : "ASSIGNED");
+            response.put("status", newAssignee.trim().isEmpty() ? "UNASSIGNED" : "ASSIGNED");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());

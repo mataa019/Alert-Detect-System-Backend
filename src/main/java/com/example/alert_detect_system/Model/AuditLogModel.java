@@ -36,6 +36,9 @@ public class AuditLogModel {
     private String oldValue;
     private String newValue;
 
+    // Optional: Task-level audit (for assignment/reassignment)
+    private String taskId;
+
     // Constructors
     public AuditLogModel() {
         this.timestamp = LocalDateTime.now();
@@ -73,4 +76,7 @@ public class AuditLogModel {
 
     public String getNewValue() { return newValue; }
     public void setNewValue(String newValue) { this.newValue = newValue; }
+
+    public String getTaskId() { return taskId; }
+    public void setTaskId(String taskId) { this.taskId = taskId; }
 }
