@@ -206,17 +206,49 @@ window.editCase = async function(caseId) {
   const modal = document.getElementById('caseEditModal');
   const form = document.getElementById('caseEditForm');
   form.caseId.value = c.id;
-  form.caseName.value = c.caseName || c.title || '';
+  form.caseType.value = c.caseType || '';
+  form.priority.value = c.priority || '';
+  form.entity.value = c.entity || '';
+  form.alertId.value = c.alertId || '';
+  form.typology.value = c.typology || '';
+  form.riskScore.value = c.riskScore || '';
   form.description.value = c.description || '';
+  form.context.value = c.context || '';
+  form.evidence.value = c.evidence || '';
+  form.assignee.value = c.assignee || '';
   modal.style.display = 'flex';
 };
 
 window.saveCaseEdit = async function() {
   const form = document.getElementById('caseEditForm');
   const caseId = form.caseId.value;
+  // Validate required fields
+  const requiredFields = [
+    form.caseType.value,
+    form.priority.value,
+    form.entity.value,
+    form.alertId.value,
+    form.typology.value,
+    form.riskScore.value,
+    form.description.value,
+    form.context.value,
+    form.evidence.value
+  ];
+  if (requiredFields.some(f => !f || f.trim() === '')) {
+    alert('All mandatory fields are required.');
+    return;
+  }
   const data = {
-    caseName: form.caseName.value,
-    description: form.description.value
+    caseType: form.caseType.value,
+    priority: form.priority.value,
+    entity: form.entity.value,
+    alertId: form.alertId.value,
+    typology: form.typology.value,
+    riskScore: parseFloat(form.riskScore.value),
+    description: form.description.value,
+    context: form.context.value,
+    evidence: form.evidence.value,
+    assignee: form.assignee.value
   };
   try {
     await api.updateCase(caseId, data);

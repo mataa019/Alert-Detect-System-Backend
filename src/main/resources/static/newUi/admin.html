@@ -75,21 +75,79 @@
         <div class="modal-body">
           <form id="caseEditForm" onsubmit="event.preventDefault(); saveCaseEdit();">
             <input type="hidden" name="caseId">
-            <div class="form-group">
-              <label for="caseName">Name</label>
-              <input type="text" name="caseName" required>
+            <div class="form-row" style="display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:1rem;">
+              <div class="form-group" style="flex:1 1 180px; min-width:180px;">
+                <label for="editCaseType">Case Type*</label>
+                <select id="editCaseType" name="caseType" required>
+                  <option value="">-- Select Type --</option>
+                  <option value="FRAUD_DETECTION">FRAUD_DETECTION</option>
+                  <option value="MONEY_LAUNDERING">MONEY_LAUNDERING</option>
+                  <option value="SUSPICIOUS_ACTIVITY">SUSPICIOUS_ACTIVITY</option>
+                  <option value="COMPLIANCE_VIOLATION">COMPLIANCE_VIOLATION</option>
+                  <option value="AML">AML</option>
+                  <option value="FRAUD">FRAUD</option>
+                  <option value="COMPLIANCE">COMPLIANCE</option>
+                  <option value="SANCTIONS">SANCTIONS</option>
+                  <option value="KYC">KYC</option>
+                </select>
+              </div>
+              <div class="form-group" style="flex:1 1 180px; min-width:180px;">
+                <label for="editPriority">Priority*</label>
+                <select id="editPriority" name="priority" required>
+                  <option value="">-- Select Priority --</option>
+                  <option value="LOW">LOW</option>
+                  <option value="MEDIUM">MEDIUM</option>
+                  <option value="HIGH">HIGH</option>
+                  <option value="CRITICAL">CRITICAL</option>
+                </select>
+              </div>
+              <div class="form-group" style="flex:1 1 180px; min-width:180px;">
+                <label for="editEntity">Entity*</label>
+                <input type="text" id="editEntity" name="entity" required placeholder="e.g. Customer123">
+              </div>
             </div>
-            <div class="form-group">
-              <label for="description">Description</label>
-              <textarea name="description" rows="3"></textarea>
+            <div class="form-row" style="display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:1rem;">
+              <div class="form-group" style="flex:1 1 180px; min-width:180px;">
+                <label for="editAlertId">Alert ID*</label>
+                <input type="text" id="editAlertId" name="alertId" required placeholder="e.g. A12345">
+              </div>
+              <div class="form-group" style="flex:1 1 180px; min-width:180px;">
+                <label for="editTypology">Typology*</label>
+                <select id="editTypology" name="typology" required>
+                  <option value="">-- Select Typology --</option>
+                  <option value="MONEY_LAUNDERING">MONEY_LAUNDERING</option>
+                  <option value="TERRORIST_FINANCING">TERRORIST_FINANCING</option>
+                  <option value="FRAUD">FRAUD</option>
+                  <option value="SANCTIONS_VIOLATION">SANCTIONS_VIOLATION</option>
+                </select>
+              </div>
+              <div class="form-group" style="flex:1 1 180px; min-width:180px;">
+                <label for="editRiskScore">Risk Score*</label>
+                <input type="number" id="editRiskScore" name="riskScore" required min="0" step="0.01" placeholder="e.g. 7.5">
+              </div>
             </div>
-            <div class="form-actions">
+            <div class="form-group" style="margin-bottom:1rem;">
+              <label for="editDescription">Description*</label>
+              <textarea id="editDescription" name="description" rows="3" style="resize:vertical;" required placeholder="Describe the case..."></textarea>
+            </div>
+            <div class="form-group" style="margin-bottom:1rem;">
+              <label for="editContext">Context*</label>
+              <textarea id="editContext" name="context" rows="2" style="resize:vertical;" required placeholder="Provide case context..."></textarea>
+            </div>
+            <div class="form-group" style="margin-bottom:1rem;">
+              <label for="editEvidence">Evidence*</label>
+              <textarea id="editEvidence" name="evidence" rows="2" style="resize:vertical;" required placeholder="List evidence or references..."></textarea>
+            </div>
+            <div class="form-group" style="margin-bottom:1rem;">
+              <label for="editCaseAssignee">Assignee</label>
+              <input type="text" id="editCaseAssignee" name="assignee" placeholder="Optional">
+            </div>
+            <div class="form-actions" style="justify-content: flex-end;">
               <button type="submit" class="btn btn-primary">Save</button>
               <button type="button" class="btn btn-secondary" onclick="closeCaseEditModal()">Cancel</button>
             </div>
           </form>
         </div>
-      </div>
     </div>
     <div id="caseCreateModal" class="modal" style="display:none;">
       <div class="modal-content">
