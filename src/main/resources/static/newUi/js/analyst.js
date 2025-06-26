@@ -143,7 +143,109 @@ window.abandonCase = async function(caseId) {
   }
 };
 
+// Add Create Case Modal
+const createCaseModalHtml = `
+  <div id="caseCreateModal" class="modal" style="display:none;">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h3>Create Case</h3>
+        <button class="close-btn" onclick="closeCaseCreateModal()">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="caseCreateForm" onsubmit="event.preventDefault(); createCase();">
+          <div class="form-group">
+            <label for="createCaseType">Case Type*</label>
+            <input type="text" id="createCaseType" required>
+          </div>
+          <div class="form-group">
+            <label for="createPriority">Priority*</label>
+            <input type="text" id="createPriority" required>
+          </div>
+          <div class="form-group">
+            <label for="createEntity">Entity*</label>
+            <input type="text" id="createEntity" required>
+          </div>
+          <div class="form-group">
+            <label for="createAlertId">Alert ID*</label>
+            <input type="text" id="createAlertId" required>
+          </div>
+          <div class="form-group">
+            <label for="createTypology">Typology*</label>
+            <input type="text" id="createTypology" required>
+          </div>
+          <div class="form-group">
+            <label for="createRiskScore">Risk Score*</label>
+            <input type="number" id="createRiskScore" required min="0" step="0.01">
+          </div>
+          <div class="form-group">
+            <label for="createDescription">Description</label>
+            <textarea id="createDescription" rows="3"></textarea>
+          </div>
+          <div class="form-actions">
+            <button type="submit" class="btn btn-primary">Create</button>
+            <button type="button" class="btn btn-secondary" onclick="closeCaseCreateModal()">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+`;
+document.body.insertAdjacentHTML('beforeend', createCaseModalHtml);
+
+window.showCreateCaseModal = function() {
+  document.getElementById('caseCreateModal').style.display = 'flex';
+};
+window.closeCaseCreateModal = function() {
+  document.getElementById('caseCreateModal').style.display = 'none';
+};
+window.createCase = async function() {
+  // Validate fields
+  const type = document.getElementById('createCaseType').value.trim();
+  const priority = document.getElementById('createPriority').value.trim();
+  const entity = document.getElementById('createEntity').value.trim();
+  const alertId = document.getElementById('createAlertId').value.trim();
+  const typology = document.getElementById('createTypology').value.trim();
+  const riskScore = document.getElementById('createRiskScore').value;
+  if (!type || !priority || !entity || !alertId || !typology || !riskScore) {
+    alert('All mandatory fields are required.');
+    return;
+  }
+  const description = document.getElementById('createDescription').value;
+  try {
+    // 1. Create the case
+    const caseData = {
+      caseType: type,
+      priority,
+      entity,
+      alertId,
+      typology,
+      riskScore: parseFloat(riskScore),
+      description,
+      createdBy: user,
+      assignee: user
+    };
+    const createdCase = await api.createCase(caseData);
+    // 2. Create the first task for the case
+    await api.createTaskForCase(createdCase.id, user);
+    // 3. Optionally assign the task (if needed)
+    // await api.assignTask(taskId, user);
+    closeCaseCreateModal();
+    loadCases();
+  } catch (e) {
+    alert(e.message);
+  }
+};
+
 window.onload = function() {
   loadTasks();
   loadCases();
+  // Add Create Case button to UI
+  const casesHeader = document.querySelector('h3#casesHeader');
+  if (casesHeader) {
+    const btn = document.createElement('button');
+    btn.className = 'btn btn-success';
+    btn.textContent = 'Create Case';
+    btn.onclick = showCreateCaseModal;
+    casesHeader.parentNode.insertBefore(btn, casesHeader.nextSibling);
+  }
 };
