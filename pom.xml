@@ -66,6 +66,11 @@
             <artifactId>flowable-engine-common</artifactId>
             <version>7.0.1</version>
         </dependency>
+        <dependency>
+            <groupId>org.flowable</groupId>
+            <artifactId>flowable-idm-engine</artifactId>
+            <version>7.0.1</version>
+        </dependency>
           <!-- Validation -->
         <dependency>
             <groupId>org.springframework.boot</groupId>

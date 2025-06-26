@@ -151,9 +151,11 @@
                 </div>
             </div>
             
-            <div id="tasks-container" class="tasks-container">
-                <!-- Tasks will be loaded here -->
+            <div id="taskListContainer">
+              <!-- Task list will be rendered here by JS -->
             </div>
+            <!-- Assignment Modal -->
+            <div id="assignModalContainer"></div>
         </section>
 
         <!-- Create Case Section -->
@@ -314,5 +316,11 @@
     </div>
 
     <script src="js/app.js"></script>
+    <script>
+      // Load the assignment modal HTML
+      fetch('assign-modal.html').then(r => r.text()).then(html => {
+        document.getElementById('assignModalContainer').innerHTML = html;
+      });
+    </script>
 </body>
 </html>

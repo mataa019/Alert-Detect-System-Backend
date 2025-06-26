@@ -1,0 +1,18 @@
+<!-- Modal for assigning/reassigning a task -->
+<div id="assignModal" class="modal" style="display:none; position:fixed; top:0; left:0; width:100vw; height:100vh; background:rgba(0,0,0,0.5); z-index:1000; align-items:center; justify-content:center;">
+  <div style="background:#fff; padding:2em; border-radius:8px; min-width:300px; max-width:90vw;">
+    <h2>Assign/Reassign Task</h2>
+    <form id="assignForm">
+      <input type="hidden" id="assignTaskId" />
+      <div style="margin-bottom:1em;">
+        <label for="assigneeInput">Assignee (username or queue):</label>
+        <input type="text" id="assigneeInput" required style="width:100%;" />
+      </div>
+      <div style="text-align:right;">
+        <button type="button" onclick="closeAssignModal()">Cancel</button>
+        <button type="submit">Assign</button>
+      </div>
+    </form>
+    <div id="assignError" style="color:red; margin-top:1em; display:none;"></div>
+  </div>
+</div>

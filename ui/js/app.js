@@ -1168,38 +1168,101 @@ async function viewCaseFromTask(caseId) {
     }
 }
 
-// Event Listeners
-document.addEventListener('DOMContentLoaded', function() {
-    // Initialize role-based UI
-    updateUIBasedOnRole();
-    
-    // Navigation event listeners
-    document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            showSection(btn.dataset.section);
-        });
-    });
-    
-    // Modal close event listeners
-    document.getElementById('case-modal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeModal();
-        }
-    });
-    
-    // Form input event listeners to clear errors
-    document.querySelectorAll('#case-form input, #case-form select, #case-form textarea').forEach(input => {
-        input.addEventListener('input', function() {
-            const formGroup = this.closest('.form-group');
-            if (formGroup.classList.contains('error')) {
-                formGroup.classList.remove('error');
-                formGroup.querySelector('.error-message').textContent = '';
-            }
-        });
-    });
-    
-    // Initial load
-    loadDashboard();
+// Supervisor: Render tasks with assign/reassign button
+function renderTaskList(tasks) {
+  const container = document.getElementById('taskListContainer');
+  if (!container) return;
+  container.innerHTML = '';
+  if (!tasks || tasks.length === 0) {
+    container.innerHTML = '<p>No tasks found.</p>';
+    return;
+  }
+  const table = document.createElement('table');
+  table.className = 'task-table';
+  table.innerHTML = `
+    <tr>
+      <th>ID</th><th>Title</th><th>Assignee</th><th>Status</th><th>Action</th>
+    </tr>
+  `;
+  tasks.forEach(task => {
+    const tr = document.createElement('tr');
+    tr.innerHTML = `
+      <td>${task.id || task.taskId || ''}</td>
+      <td>${task.title || ''}</td>
+      <td>${task.assignee || 'Unassigned'}</td>
+      <td>${task.status || ''}</td>
+      <td><button onclick="openAssignModal('${task.id || task.taskId}')">Assign/Reassign</button></td>
+    `;
+    table.appendChild(tr);
+  });
+  container.appendChild(table);
+}
+
+// Open modal for assignment
+window.openAssignModal = function(taskId) {
+  document.getElementById('assignTaskId').value = taskId;
+  document.getElementById('assigneeInput').value = '';
+  document.getElementById('assignError').style.display = 'none';
+  document.getElementById('assignModal').style.display = 'flex';
+};
+
+window.closeAssignModal = function() {
+  document.getElementById('assignModal').style.display = 'none';
+};
+
+// Handle assignment form submit
+function setupAssignForm() {
+  const form = document.getElementById('assignForm');
+  if (!form) return;
+  form.onsubmit = async function(e) {
+    e.preventDefault();
+    const taskId = document.getElementById('assignTaskId').value;
+    const assignee = document.getElementById('assigneeInput').value.trim();
+    if (!assignee) {
+      showAssignError('Assignee is required');
+      return;
+    }
+    try {
+      const res = await fetch(`/api/tasks/assign/${taskId}`, {
+        method: 'PUT',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ assignee })
+      });
+      if (!res.ok) {
+        const err = await res.text();
+        showAssignError(err);
+        return;
+      }
+      closeAssignModal();
+      alert('Task assigned/reassigned successfully');
+      loadTasks();
+    } catch (err) {
+      showAssignError('Error assigning task');
+    }
+  };
+}
+
+function showAssignError(msg) {
+  const el = document.getElementById('assignError');
+  if (el) {
+    el.textContent = msg;
+    el.style.display = 'block';
+  }
+}
+
+// Load tasks for supervisor view
+async function loadTasks() {
+  // You may want to filter by group or all tasks
+  const res = await fetch('/api/tasks/by-assignee/supervisor');
+  if (!res.ok) return;
+  const tasks = await res.json();
+  renderTaskList(tasks);
+}
+
+// On page load
+window.addEventListener('DOMContentLoaded', () => {
+  loadTasks();
+  setTimeout(setupAssignForm, 500); // Wait for modal HTML to load
 });
 
 // Test connection function
