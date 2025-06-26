@@ -1176,36 +1176,18 @@ async function viewCaseFromTask(caseId) {
 
 // Event Listeners
 document.addEventListener('DOMContentLoaded', function() {
-    // Initialize role-based UI
-    updateUIBasedOnRole();
-    
-    // Navigation event listeners
+    // Navigation click handlers
     document.querySelectorAll('.nav-btn').forEach(btn => {
-        btn.addEventListener('click', () => {
-            showSection(btn.dataset.section);
-        });
-    });
-    
-    // Modal close event listeners
-    document.getElementById('case-modal').addEventListener('click', function(e) {
-        if (e.target === this) {
-            closeModal();
-        }
-    });
-    
-    // Form input event listeners to clear errors
-    document.querySelectorAll('#case-form input, #case-form select, #case-form textarea').forEach(input => {
-        input.addEventListener('input', function() {
-            const formGroup = this.closest('.form-group');
-            if (formGroup.classList.contains('error')) {
-                formGroup.classList.remove('error');
-                formGroup.querySelector('.error-message').textContent = '';
+        btn.addEventListener('click', function() {
+            const section = btn.getAttribute('data-section');
+            if (section) {
+                showSection(section);
             }
         });
     });
-    
-    // Initial load
-    loadDashboard();
+    // Initial UI setup
+    updateUIBasedOnRole();
+    refreshAllData();
 });
 
 // Test connection function
