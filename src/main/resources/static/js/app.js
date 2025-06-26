@@ -4,7 +4,7 @@ const API_BASE_URL = 'http://localhost:8080/api';
 // Global state
 let currentMode = 'draft';
 let allCases = [];
-let currentUser = 'user'; // Default user
+let currentUser = 'admin1'; // Default user set to a valid user
 
 // Valid values from backend
 const VALID_CASE_TYPES = [
