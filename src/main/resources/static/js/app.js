@@ -1065,7 +1065,7 @@ async function createCase(event) {
         
         if (editingCaseId) {
             // User Story 2: Complete case creation
-            result = await apiRequest(`/cases/${editingCaseId}/complete`, {
+            result = await apiRequest(`/cases/${editingCaseId}?action=complete`, {
                 method: 'PUT',
                 body: JSON.stringify(requestBody)
             });
