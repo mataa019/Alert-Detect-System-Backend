@@ -136,8 +136,16 @@ public class CaseController {
                     }
                     String comments = (String) requestBody.getOrDefault("comments", "");
                     Map<String, Object> approvalParams = Map.of("approved", approved, "comments", comments);
+                    CaseModel caseToApprove = existingCase.get();
+                    // Only allow approval/rejection if case is in PENDING_CASE_CREATION_APPROVAL
+                    if (caseToApprove.getStatus() != CaseStatus.PENDING_CASE_CREATION_APPROVAL) {
+                        auditService.logCaseAction(caseId, "UNAUTHORIZED_APPROVAL_ATTEMPT", updatedBy, "Tried to approve/reject case not in PENDING_CASE_CREATION_APPROVAL");
+                        return ResponseEntity.status(403).body("Case is not pending approval");
+                    }
+                    // TODO: Optionally check if supervisor has claimed the approval task (handled in TaskService)
                     CaseModel approvedCase = caseService.performCaseAction(caseId, "approve", null, updatedBy, approvalParams);
-                    
+                    // Log approval/rejection event
+                    auditService.logCaseAction(caseId, approved ? "CASE_APPROVED" : "CASE_REJECTED", updatedBy, comments);
                     Map<String, Object> response = new HashMap<>();
                     response.put("case", approvedCase);
                     response.put("message", approved ? "Case approved and workflow started" : "Case rejected");

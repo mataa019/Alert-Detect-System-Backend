@@ -890,6 +890,29 @@ async function approveCase(caseId, approved) {
 // Supervisor Approval Workflow
 async function handleApprovalTask(taskId, caseId, approve) {
     try {
+        // Fetch case and task details
+        const [caseItem, taskItem] = await Promise.all([
+            apiRequest(`/cases/${caseId}`),
+            apiRequest(`/tasks/${taskId}`)
+        ]);
+        // Check case status
+        if (caseItem.status !== 'PENDING_CASE_CREATION_APPROVAL') {
+            showAlert('Case is not pending approval. Approval/rejection not allowed.');
+            return;
+        }
+        // Check if current user is the assignee; if not, claim the task
+        if (!taskItem.assignee || taskItem.assignee !== currentUser) {
+            if (confirm('You must claim this approval task before acting. Claim now?')) {
+                await apiRequest(`/task/assign/${taskId}`, {
+                    method: 'PUT',
+                    body: JSON.stringify({ assignee: currentUser, updatedBy: currentUser })
+                });
+                showSuccess('Task claimed successfully. You can now approve or reject.');
+            } else {
+                showAlert('You must claim the task to proceed.');
+                return;
+            }
+        }
         let comments = '';
         if (approve) {
             comments = prompt('Enter approval comments (optional):') || '';
@@ -933,8 +956,12 @@ async function handleApprovalTask(taskId, caseId, approve) {
             loadDashboard();
         }
     } catch (error) {
+        if (error.message && error.message.includes('403')) {
+            showAlert('Unauthorized: You do not have permission to approve/reject this case.');
+        } else {
+            showAlert(`Error processing approval: ${error.message}`);
+        }
         console.error('Error processing approval task:', error);
-        showAlert(`Error processing approval: ${error.message}`);
     }
 }
 
