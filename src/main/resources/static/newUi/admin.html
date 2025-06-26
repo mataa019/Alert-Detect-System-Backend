@@ -48,6 +48,7 @@
     </div>
     <hr>
     <h3>Cases</h3>
+    <button class="btn btn-success" onclick="showCreateCaseModal()">Create Case</button>
     <table class="table" id="casesTable">
       <thead>
         <tr>
@@ -89,6 +90,38 @@
           </form>
         </div>
       </div>
+    </div>
+    <div id="caseCreateModal" class="modal" style="display:none;">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h3>Create Case</h3>
+          <button class="close-btn" onclick="closeCaseCreateModal()">&times;</button>
+        </div>
+        <div class="modal-body">
+          <form id="caseCreateForm" onsubmit="event.preventDefault(); createCase();">
+            <div class="form-group">
+              <label for="createCaseName">Name</label>
+              <input type="text" id="createCaseName" required>
+            </div>
+            <div class="form-group">
+              <label for="createCaseDescription">Description</label>
+              <textarea id="createCaseDescription" rows="3"></textarea>
+            </div>
+            <div class="form-group">
+              <label for="createCaseAssignee">Assignee</label>
+              <input type="text" id="createCaseAssignee">
+            </div>
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Create</button>
+              <button type="button" class="btn btn-secondary" onclick="closeCaseCreateModal()">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+    <div id="recentCasesSection" style="margin-top:2rem;">
+      <h3>Recent Cases</h3>
+      <ul id="recentCasesList"></ul>
     </div>
   </div>
   <script type="module" src="js/admin.js"></script>
