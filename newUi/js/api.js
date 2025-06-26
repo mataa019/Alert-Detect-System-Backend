@@ -48,3 +48,58 @@ export function getAuditLogs(caseId) {
   // You may need to implement this endpoint in your backend
   return fetch(`/api/audit/${caseId}`).then(r => r.json());
 }
+
+// CASE API
+const CASE_API = '/api/cases';
+
+export function createCase(caseData) {
+  return fetchJSON(CASE_API, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(caseData)
+  });
+}
+
+export function getCases({ status, creator, pendingApproval } = {}) {
+  let url = CASE_API + '?';
+  if (status) url += `status=${encodeURIComponent(status)}&`;
+  if (creator) url += `creator=${encodeURIComponent(creator)}&`;
+  if (pendingApproval) url += `pendingApproval=true&`;
+  return fetchJSON(url);
+}
+
+export function getCaseById(caseId) {
+  return fetchJSON(`${CASE_API}/${caseId}`);
+}
+
+export function updateCase(caseId, action, data) {
+  return fetchJSON(`${CASE_API}/${caseId}?action=${action}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+}
+
+export function deleteCase(caseId, deletedBy) {
+  return fetchJSON(`${CASE_API}/${caseId}?deletedBy=${encodeURIComponent(deletedBy)}`, {
+    method: 'DELETE'
+  });
+}
+
+export function getRecentCases(limit = 10, user = '') {
+  let url = `${CASE_API}/recent?limit=${limit}`;
+  if (user) url += `&user=${encodeURIComponent(user)}`;
+  return fetchJSON(url);
+}
+
+export function getUserRole(user) {
+  return fetchJSON(`${CASE_API}/user/role?user=${encodeURIComponent(user)}`);
+}
+
+export function abandonCase(caseId, abandonedBy, reason) {
+  return fetchJSON(`${CASE_API}/abandon/${caseId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ abandonedBy, reason })
+  });
+}
