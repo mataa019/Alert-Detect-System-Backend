@@ -288,9 +288,6 @@ public class TaskController {
             // Validate input
             String newAssignee = (String) requestBody.get("assignee");
             String performedBy = (String) requestBody.getOrDefault("performedBy", "supervisor");
-            if (newAssignee == null || newAssignee.trim().isEmpty()) {
-                return ResponseEntity.badRequest().body("Assignee is required");
-            }
             // Get the task
             TaskModel task = taskService.getTaskModelById(taskId);
             if (task == null) {
@@ -301,6 +298,24 @@ public class TaskController {
                 return ResponseEntity.badRequest().body("Cannot reassign a completed task");
             }
             String oldAssignee = task.getAssignee();
+            // Unassignment: if assignee is null/empty, remove ownership and set status to UNASSIGNED
+            if (newAssignee == null || newAssignee.trim().isEmpty()) {
+                // Remove assignee
+                taskService.assignTask(taskId, null);
+                taskService.updateTaskStatus(taskId, "UNASSIGNED");
+                auditService.logTaskAction(taskId, "TASK_UNASSIGNED", performedBy,
+                    "Task unassigned from " + (oldAssignee != null ? oldAssignee : "unassigned"));
+                // Optionally notify old assignee
+                if (oldAssignee != null) {
+                    System.out.println("Notification: Task " + taskId + " has been unassigned from you and returned to the queue.");
+                }
+                Map<String, Object> response = new HashMap<>();
+                response.put("message", "Task unassigned successfully");
+                response.put("taskId", taskId);
+                response.put("oldAssignee", oldAssignee);
+                response.put("status", "UNASSIGNED");
+                return ResponseEntity.ok(response);
+            }
             // Validate new assignee (implement your own user validation logic)
             if (!taskService.isValidAssignee(newAssignee)) {
                 return ResponseEntity.badRequest().body("Invalid target user");
@@ -308,11 +323,7 @@ public class TaskController {
             // Update task assignment
             taskService.assignTask(taskId, newAssignee);
             // Update status
-            if (newAssignee.trim().isEmpty()) {
-                taskService.updateTaskStatus(taskId, "UNASSIGNED");
-            } else {
-                taskService.updateTaskStatus(taskId, "ASSIGNED");
-            }
+            taskService.updateTaskStatus(taskId, "ASSIGNED");
             // Audit log
             auditService.logTaskAction(taskId, "TASK_REASSIGNED", performedBy,
                 "Task reassigned from " + (oldAssignee != null ? oldAssignee : "unassigned") + " to " + newAssignee);
@@ -329,7 +340,7 @@ public class TaskController {
             response.put("taskId", taskId);
             response.put("oldAssignee", oldAssignee);
             response.put("newAssignee", newAssignee);
-            response.put("status", newAssignee.trim().isEmpty() ? "UNASSIGNED" : "ASSIGNED");
+            response.put("status", "ASSIGNED");
             return ResponseEntity.ok(response);
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());

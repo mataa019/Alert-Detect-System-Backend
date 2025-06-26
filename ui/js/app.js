@@ -540,7 +540,6 @@ async function loadTasks() {
 
 function displayTasks(flowableTasks = [], dbTasks = []) {
     const container = document.getElementById('tasks-container');
-    
     if (flowableTasks.length === 0 && dbTasks.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
@@ -551,14 +550,13 @@ function displayTasks(flowableTasks = [], dbTasks = []) {
         `;
         return;
     }
-    
     let html = '';
-    
     // Display Database Tasks (Case-related tasks)
     if (dbTasks.length > 0) {
         html += '<h3><i class="fas fa-clipboard-list"></i> Case Management Tasks</h3>';
         html += dbTasks.map(task => {
             const canAssign = hasPermission('ASSIGN_TASK') && task.status !== 'COMPLETED';
+            const canUnassign = canAssign && task.assignee; // Only show unassign if assigned
             return `
             <div class="task-card task-db">
                 <div class="task-header">
@@ -577,6 +575,7 @@ function displayTasks(flowableTasks = [], dbTasks = []) {
                     ${task.status === 'OPEN' ? `<button class="btn btn-primary btn-sm" onclick="completeTask('${task.id}', 'database')"><i class="fas fa-check"></i> Complete Task</button>` : ''}
                     <button class="btn btn-info btn-sm" onclick="viewCaseFromTask('${task.caseId}')"><i class="fas fa-folder-open"></i> View Case</button>
                     ${canAssign ? `<button class="btn btn-warning btn-sm" onclick="openAssignModal('${task.id}')"><i class='fas fa-user-edit'></i> Assign/Reassign</button>` : ''}
+                    ${canUnassign ? `<button class="btn btn-danger btn-sm" onclick="unassignTask('${task.id}')"><i class='fas fa-user-slash'></i> Unassign</button>` : ''}
                 </div>
             </div>
             `;
@@ -609,94 +608,21 @@ function displayTasks(flowableTasks = [], dbTasks = []) {
     container.innerHTML = html;
 }
 
-async function completeTask(taskId, taskType = 'database') {
-    if (!confirm('Are you sure you want to complete this task?')) {
-        return;
-    }
-    
+// Supervisor/Unassign logic
+async function unassignTask(taskId) {
+    if (!confirm('Are you sure you want to unassign this task?')) return;
     try {
-        if (taskType === 'flowable') {
-            // Complete Flowable BPMN task
-            await apiRequest(`/tasks/complete/${taskId}`, {
-                method: 'PUT',
-                body: JSON.stringify({
-                    variables: {},
-                    action: 'complete'
-                })
-            });
-        } else {
-            // Complete database task
-            await apiRequest(`/task/update/${taskId}`, {
-                method: 'PUT',
-                body: JSON.stringify({
-                    updatedBy: currentUser,
-                    action: 'COMPLETE_TASK'
-                })
-            });
-        }
-        
-        showSuccess('Task completed successfully!');
-        await loadTasks(); // Refresh tasks
-        
-    } catch (error) {
-        console.error('Error completing task:', error);
-        showAlert(`Error completing task: ${error.message}`);
+        await apiRequest(`/tasks/assign/${taskId}`, {
+            method: 'PUT',
+            body: JSON.stringify({ assignee: '', performedBy: currentUser })
+        });
+        showSuccess('Task unassigned successfully');
+        loadTasks();
+    } catch (err) {
+        showAlert(err.message || 'Error unassigning task');
     }
 }
-
-async function showTaskDetails(taskId) {
-    try {
-        const task = await apiRequest(`/tasks/${taskId}`);
-        
-        const modalBody = document.getElementById('modal-body');
-        modalBody.innerHTML = `
-            <div class="task-details-modal">
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem;">
-                    <div class="case-detail">
-                        <label>Task ID</label>
-                        <span>${task.id}</span>
-                    </div>
-                    <div class="case-detail">
-                        <label>Name</label>
-                        <span>${task.name}</span>
-                    </div>
-                    <div class="case-detail">
-                        <label>Assignee</label>
-                        <span>${task.assignee || 'Unassigned'}</span>
-                    </div>
-                    <div class="case-detail">
-                        <label>Created</label>
-                        <span>${formatDate(task.createTime)}</span>
-                    </div>
-                    <div class="case-detail">
-                        <label>Process Instance</label>
-                        <span>${task.processInstanceId || 'N/A'}</span>
-                    </div>
-                    <div class="case-detail">
-                        <label>Process Definition</label>
-                        <span>${task.processDefinitionId || 'N/A'}</span>
-                    </div>
-                </div>
-                
-                ${task.description ? `
-                    <div class="case-detail" style="margin-top: 1rem;">
-                        <label>Description</label>
-                        <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px; margin-top: 0.5rem;">
-                            ${task.description}
-                        </div>
-                    </div>
-                ` : ''}
-            </div>
-        `;
-        
-        document.getElementById('modal-title').textContent = `Task Details - ${task.name}`;
-        document.getElementById('case-modal').style.display = 'flex';
-        
-    } catch (error) {
-        console.error('Error loading task details:', error);
-        showAlert(`Error loading task details: ${error.message}`);
-    }
-}
+window.unassignTask = unassignTask;
 
 // Approval Functions
 async function loadApprovals() {
@@ -1178,20 +1104,16 @@ function setupAssignForm() {
     e.preventDefault();
     const taskId = document.getElementById('assignTaskId').value;
     const assignee = document.getElementById('assigneeInput').value.trim();
-    if (!assignee) {
-      showAssignError('Assignee is required');
-      return;
-    }
     try {
       await apiRequest(`/tasks/assign/${taskId}`, {
         method: 'PUT',
         body: JSON.stringify({ assignee, performedBy: currentUser })
       });
       closeAssignModal();
-      showSuccess('Task assigned/reassigned successfully');
+      showSuccess(assignee ? 'Task assigned/reassigned successfully' : 'Task unassigned successfully');
       loadTasks();
     } catch (err) {
-      showAssignError(err.message || 'Error assigning task');
+      showAssignError(err.message || 'Error assigning/unassigning task');
     }
   };
 }
