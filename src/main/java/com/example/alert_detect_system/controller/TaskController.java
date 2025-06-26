@@ -38,30 +38,32 @@ public class TaskController {
     @Autowired
     private AuditService auditService;
     
-    // Get my tasks
+    /** Get all tasks assigned to a specific user */
     @GetMapping("/my/{assignee}")
     public ResponseEntity<List<Task>> getMyTasks(@PathVariable String assignee) {
         return ResponseEntity.ok(taskService.getMyTasks(assignee));
     }
     
-    // Get group tasks
+    /** Get all tasks assigned to a specific group */
     @GetMapping("/group/{groupId}")
     public ResponseEntity<List<Task>> getGroupTasks(@PathVariable String groupId) {
         return ResponseEntity.ok(taskService.getGroupTasks(groupId));
     }
     
-    // Get specific task
+    /** Get a specific task by its ID */
     @GetMapping("/{taskId}")
     public ResponseEntity<Task> getTaskById(@PathVariable String taskId) {
         Task task = taskService.getTaskById(taskId);
         return task != null ? ResponseEntity.ok(task) : ResponseEntity.notFound().build();
     }
-      // Get tasks by case
+    
+    /** Get all tasks related to a specific case */
     @GetMapping("/by-case/{caseId}")
     public ResponseEntity<List<TaskModel>> getTasksByCaseId(@PathVariable UUID caseId) {
         return ResponseEntity.ok(taskService.getTasksByCaseId(caseId));
     }
-      // Assign task (JSON only)
+    
+    /** Assign a task to a user */
     @PostMapping("/assign")
     public ResponseEntity<String> assignTask(@RequestBody TaskAssignDto assignDto) {
         try {
@@ -74,7 +76,8 @@ public class TaskController {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
-      // Complete task (JSON only)
+    
+    /** Complete a task (Flowable or DB) */
     @PostMapping("/complete")
     public ResponseEntity<String> completeTask(@RequestBody Map<String, Object> request) {
         try {
@@ -82,62 +85,50 @@ public class TaskController {
             if (taskId == null || taskId.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body("TaskId is required");
             }
-              Object variablesObj = request.get("variables");
+            Object variablesObj = request.get("variables");
             Map<String, Object> variables = new HashMap<>();
             if (variablesObj instanceof Map) {
                 @SuppressWarnings("unchecked")
                 Map<String, Object> tempMap = (Map<String, Object>) variablesObj;
                 variables = tempMap;
             }
-            
             taskService.completeTask(taskId, variables);
-            return ResponseEntity.ok("Task completed successfully");        } catch (Exception e) {
+            return ResponseEntity.ok("Task completed successfully");
+        } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error: " + e.getMessage());
         }
     }
     
-    // Update task (as per API spec: PUT /api/task/update/:task-id)
+    /** Update a task (for case creation workflow) */
     @PutMapping("/update/{taskId}")
     public ResponseEntity<?> updateTask(@PathVariable String taskId, @RequestBody Map<String, Object> updateData) {
         try {
             if (taskId == null || taskId.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body("TaskId is required");
             }
-            
-            // Get task details first
             Task task = taskService.getTaskById(taskId);
             if (task == null) {
                 return ResponseEntity.notFound().build();
             }
-            
-            // Check if this is a "Complete Case Creation" task
             String taskName = task.getName();
             if (!"Complete Case Creation".equals(taskName)) {
                 return ResponseEntity.badRequest().body("Only 'Complete Case Creation' tasks can be updated");
             }
-            
-            // Complete the current task and create new "Approve Case Creation" task
             Map<String, Object> variables = new HashMap<>();
             variables.put("action", "CASE_UPDATED");
             variables.put("updatedBy", updateData.getOrDefault("updatedBy", "user"));
-            
-            // Complete current task
             taskService.completeTask(taskId, variables);
-            
-            // The BPMN workflow should automatically create the "Approve Case Creation" task
-            // Return success response
             Map<String, String> response = new HashMap<>();
             response.put("message", "Task updated successfully");
             response.put("status", "COMPLETED");
             response.put("nextTask", "Approve Case Creation");
-            
             return ResponseEntity.ok(response);
-            
         } catch (Exception e) {
             return ResponseEntity.badRequest().body("Error updating task: " + e.getMessage());
         }
     }
-      // Create task record
+    
+    /** Create a new task for a case */
     @PostMapping("/create/{caseId}")
     public ResponseEntity<TaskModel> createTaskForCase(
             @PathVariable UUID caseId,
@@ -156,28 +147,20 @@ public class TaskController {
         }
     }
     
-    /**
-     * SUPERVISOR APPROVAL WORKFLOW
-     * PUT /api/tasks/{taskId}/approve-case
-     * This endpoint handles the complete supervisor approval workflow
-     */
+    /** Supervisor approval workflow for case creation */
     @PutMapping("/{taskId}/approve-case")
     public ResponseEntity<Map<String, Object>> approveCaseCreation(
             @PathVariable String taskId,
             @RequestBody ApprovalRequest request) {
-        
         try {
-            // Simple check - admin is the supervisor
             String approvedBy = request.getApprovedBy();
             if (approvedBy == null || approvedBy.trim().isEmpty()) {
                 return ResponseEntity.badRequest().body(Map.of("error", "Approved by is required"));
             }
-            // Get the task to validate it exists
             Task task = taskService.getTaskById(taskId);
             if (task == null) {
                 return ResponseEntity.notFound().build();
             }
-            // Get case ID - simple approach
             UUID caseId = UUID.fromString(task.getProcessVariables().get("caseId").toString());
             Map<String, Object> response = new HashMap<>();
             String originalCreator = null;
@@ -185,17 +168,12 @@ public class TaskController {
                 originalCreator = task.getProcessVariables().get("originalCreator").toString();
             }
             if (request.isApproved()) {
-                // APPROVAL FLOW - Simple and straightforward
-                // 1. Complete the approval task
                 Map<String, Object> variables = new HashMap<>();
                 variables.put("approved", true);
                 variables.put("comments", request.getComments());
                 taskService.completeTask(taskId, variables);
-                // 2. Update case status to READY_FOR_ASSIGNMENT
                 caseService.updateCaseStatus(caseId, CaseStatus.READY_FOR_ASSIGNMENT, approvedBy);
-                // 3. Create "Investigate Case" task for investigations group
                 taskService.createInvestigateTask(caseId, "investigations");
-                // 4. Log the approval action for the analyst
                 if (originalCreator != null) {
                     auditService.logCaseAction(caseId, "CASE_APPROVED", approvedBy, "Case approved and assigned to investigations. Notified analyst: " + originalCreator);
                 } else {
@@ -204,15 +182,11 @@ public class TaskController {
                 response.put("message", "Case approved successfully and assigned to investigations team");
                 response.put("status", "APPROVED");
             } else {
-                // REJECTION FLOW - Simple and straightforward  
-                // 1. Complete the approval task
                 Map<String, Object> variables = new HashMap<>();
                 variables.put("approved", false);
                 variables.put("comments", request.getComments());
                 taskService.completeTask(taskId, variables);
-                // 2. Update case status back to DRAFT
                 caseService.updateCaseStatus(caseId, CaseStatus.DRAFT, approvedBy);
-                // 3. Create "Complete Case Creation" task for original creator
                 if (originalCreator != null) {
                     taskService.createCompleteTaskForUser(caseId, originalCreator);
                     auditService.logCaseAction(caseId, "CASE_REJECTED", approvedBy, "Case rejected and returned to analyst: " + originalCreator);
@@ -222,7 +196,6 @@ public class TaskController {
                 response.put("message", "Case rejected and returned to creator for completion");
                 response.put("status", "REJECTED");
             }
-            // Add audit info
             response.put("approvedBy", approvedBy);
             response.put("comments", request.getComments());
             response.put("caseId", caseId.toString());
@@ -231,41 +204,32 @@ public class TaskController {
             return ResponseEntity.badRequest().body(Map.of("error", "Error processing approval: " + e.getMessage()));
         }
     }
-
-    // Get DB tasks by assignee
+    
+    /** Get DB tasks by assignee */
     @GetMapping("/by-assignee/{assignee}")
     public ResponseEntity<List<TaskModel>> getTasksByAssignee(@PathVariable String assignee) {
         return ResponseEntity.ok(taskService.getTasksByAssignee(assignee));
     }
-
-    // DTO for task creation
+    
     public static class CreateTaskRequest {
         private String title;
         private String description;
         private String assignee;
         private String priority;
-        
-        // Getters and setters
         public String getTitle() { return title; }
         public void setTitle(String title) { this.title = title; }
-        
         public String getDescription() { return description; }
         public void setDescription(String description) { this.description = description; }
-        
         public String getAssignee() { return assignee; }
         public void setAssignee(String assignee) { this.assignee = assignee; }
-        
         public String getPriority() { return priority; }
         public void setPriority(String priority) { this.priority = priority; }
     }
     
-    // DTO for approval requests
     public static class ApprovalRequest {
         private boolean approved;
         private String comments;
         private String approvedBy;
-        
-        // Getters and setters
         public boolean isApproved() { return approved; }
         public void setApproved(boolean approved) { this.approved = approved; }
         public String getComments() { return comments; }
