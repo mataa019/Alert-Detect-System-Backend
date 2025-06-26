@@ -1383,11 +1383,10 @@ async function abandonCase(caseId) {
         if (!confirm('Are you sure you want to abandon this draft case? This action cannot be undone.')) {
             return;
         }
-        // Call backend to update status
-        await apiRequest(`/case/update-status/${caseId}`, {
+        // Call backend to abandon case (correct endpoint)
+        await apiRequest(`/cases/abandon/${caseId}`, {
             method: 'PUT',
             body: JSON.stringify({
-                status: 'ABANDONED',
                 abandonedBy: currentUser,
                 reason: reason.trim()
             })
