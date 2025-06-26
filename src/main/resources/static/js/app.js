@@ -381,7 +381,10 @@ function displayCases(cases) {
         return;
     }
     
-    container.innerHTML = cases.map(caseItem => `
+    container.innerHTML = cases.map(caseItem => {
+        const isDraft = caseItem.status === 'DRAFT';
+        const isOwner = caseItem.createdBy === currentUser;
+        return `
         <div class="case-card" onclick="showCaseDetails('${caseItem.id}')">
             <div class="case-header">
                 <div class="case-number">${caseItem.caseNumber}</div>
@@ -407,17 +410,18 @@ function displayCases(cases) {
             </div>
             <div class="case-description">${caseItem.description || 'No description'}</div>
             <div class="case-actions">
-                ${caseItem.status === 'DRAFT' ? 
+                ${isDraft ? 
                     `<button class="btn btn-warning btn-sm" onclick="event.stopPropagation(); editCase('${caseItem.id}')">
                         <i class="fas fa-edit"></i> Complete Case
-                    </button>` : ''
+                    </button>
+                    ${isOwner ? `<button class="btn btn-danger btn-sm" onclick="event.stopPropagation(); abandonCase('${caseItem.id}')"><i class='fas fa-trash'></i> Abandon Case</button>` : ''}` : ''
                 }
                 <button class="btn btn-info btn-sm" onclick="event.stopPropagation(); showCaseDetails('${caseItem.id}')">
                     <i class="fas fa-eye"></i> View Details
                 </button>
             </div>
         </div>
-    `).join('');
+    `}).join('');
 }
 
 function filterCases() {
@@ -1156,21 +1160,49 @@ function populateFormForEdit(caseItem) {
     });
 }
 
-// Function to view case from task
-async function viewCaseFromTask(caseId) {
+// Abandon Draft Case
+async function abandonCase(caseId) {
     try {
-        // Switch to cases section and show the specific case
-        showSection('cases');
-        await loadCases();
-        
-        // Find and show the case details
-        setTimeout(() => {
-            showCaseDetails(caseId);
-        }, 500); // Small delay to ensure cases are loaded
-        
+        // Fetch case details to check status and owner
+        const caseItem = await apiRequest(`/cases/${caseId}`);
+        if (caseItem.status !== 'DRAFT') {
+            showAlert('Only draft cases can be abandoned.');
+            return;
+        }
+        if (caseItem.createdBy !== currentUser) {
+            showAlert('You can only abandon cases you created.');
+            return;
+        }
+        // Prompt for reason
+        let reason = prompt('Please provide a reason for abandoning this case:');
+        if (!reason || !reason.trim()) {
+            showAlert('Abandonment reason is required.');
+            return;
+        }
+        // Confirm
+        if (!confirm('Are you sure you want to abandon this draft case? This action cannot be undone.')) {
+            return;
+        }
+        // Call backend to update status
+        await apiRequest(`/case/update-status/${caseId}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                status: 'ABANDONED',
+                abandonedBy: currentUser,
+                reason: reason.trim()
+            })
+        });
+        showSuccess('Case abandoned successfully.');
+        // Refresh cases and dashboard
+        if (document.getElementById('dashboard').classList.contains('active')) {
+            loadDashboard();
+        }
+        if (document.getElementById('cases').classList.contains('active')) {
+            loadCases();
+        }
     } catch (error) {
-        console.error('Error viewing case from task:', error);
-        showAlert(`Error viewing case: ${error.message}`);
+        console.error('Error abandoning case:', error);
+        showAlert(`Error abandoning case: ${error.message}`);
     }
 }
 

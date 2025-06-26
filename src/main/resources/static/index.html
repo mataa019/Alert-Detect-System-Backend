@@ -15,19 +15,19 @@
                 <h1>Alert Detection System</h1>
             </div>
             <nav class="nav">
-                <button class="nav-btn active" data-section="dashboard">
+                <button class="nav-btn nav-dashboard active" data-section="dashboard" data-role="all">
                     <i class="fas fa-dashboard"></i> Dashboard
                 </button>
-                <button class="nav-btn" data-section="cases">
+                <button class="nav-btn nav-cases" data-section="cases" data-role="all">
                     <i class="fas fa-folder-open"></i> Cases
                 </button>
-                <button class="nav-btn" data-section="tasks">
+                <button class="nav-btn nav-tasks" data-section="tasks" data-role="all">
                     <i class="fas fa-tasks"></i> Tasks
                 </button>
-                <button class="nav-btn" data-section="approvals">
+                <button class="nav-btn nav-approvals" data-section="approvals" data-role="admin">
                     <i class="fas fa-gavel"></i> Approvals
                 </button>
-                <button class="nav-btn" data-section="create-case">
+                <button class="nav-btn nav-create-case" data-section="create-case" data-role="all">
                     <i class="fas fa-plus"></i> Create Case
                 </button>
             </nav>
@@ -52,7 +52,7 @@
     <!-- Main Content -->
     <main class="main-content">
         <!-- Dashboard Section -->
-        <section id="dashboard" class="section active">
+        <section id="dashboard" class="section section-dashboard active">
             <div class="section-header">
                 <h2><i class="fas fa-dashboard"></i> Dashboard</h2>
                 <button class="btn btn-secondary" onclick="refreshDashboard()">
@@ -113,7 +113,7 @@
         </section>
 
         <!-- Cases Section -->
-        <section id="cases" class="section">
+        <section id="cases" class="section section-cases">
             <div class="section-header">
                 <h2><i class="fas fa-folder-open"></i> Cases</h2>
                 <div class="header-actions">
@@ -137,7 +137,7 @@
                 <!-- Cases will be loaded here -->
             </div>
         </section>        <!-- Tasks Section -->
-        <section id="tasks" class="section">
+        <section id="tasks" class="section section-tasks">
             <div class="section-header">
                 <h2><i class="fas fa-tasks"></i> Tasks</h2>
                 <div class="header-actions">
@@ -157,7 +157,7 @@
         </section>
 
         <!-- Create Case Section -->
-        <section id="create-case" class="section">
+        <section id="create-case" class="section section-create-case">
             <div class="section-header">
                 <h2><i class="fas fa-plus"></i> Create New Case</h2>
             </div>
@@ -282,7 +282,7 @@
         </section>
 
         <!-- Approvals Section -->
-        <section id="approvals" class="section">
+        <section id="approvals" class="section section-approvals">
             <div class="section-header">
                 <h2><i class="fas fa-gavel"></i> Case Approvals</h2>
                 <button class="btn btn-secondary" onclick="loadApprovals()">
