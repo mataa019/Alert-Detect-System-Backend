@@ -105,3 +105,10 @@ export function abandonCase(caseId, abandonedBy, reason) {
     body: JSON.stringify({ abandonedBy, reason })
   });
 }
+export function createTaskForCase(caseId, createdBy) {
+  return fetchJSON(`/api/tasks/create/${caseId}`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ createdBy })
+  });
+}
