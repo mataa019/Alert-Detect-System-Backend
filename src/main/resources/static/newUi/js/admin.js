@@ -132,8 +132,10 @@ window.createCase = async function() {
   const typology = document.getElementById('createTypology').value.trim();
   const riskScore = document.getElementById('createRiskScore').value;
   const description = document.getElementById('createCaseDescription').value;
+  const context = document.getElementById('createCaseContext').value;
+  const evidence = document.getElementById('createCaseEvidence').value;
   const assignee = document.getElementById('createCaseAssignee').value.trim();
-  if (!type || !priority || !entity || !alertId || !typology || !riskScore) {
+  if (!type || !priority || !entity || !alertId || !typology || !riskScore || !context || !evidence) {
     alert('All mandatory fields are required.');
     return;
   }
@@ -147,6 +149,8 @@ window.createCase = async function() {
       typology,
       riskScore: parseFloat(riskScore),
       description,
+      context,
+      evidence,
       assignee
     };
     const createdCase = await api.createCase(caseData);
