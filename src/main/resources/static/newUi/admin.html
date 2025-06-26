@@ -99,41 +99,46 @@
         </div>
         <div class="modal-body">
           <form id="caseCreateForm" onsubmit="event.preventDefault(); createCase();">
-            <div class="form-row" style="display:flex; gap:1.5rem; flex-wrap:wrap;">
+            <div class="form-row" style="display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:1rem;">
               <div class="form-group" style="flex:1 1 180px; min-width:180px;">
                 <label for="createCaseType">Case Type*</label>
-                <input type="text" id="createCaseType" required>
+                <select id="createCaseType" required>
+                  <option value="">-- Select Type --</option>
+                  <option value="ALERT">ALERT</option>
+                  <option value="INVESTIGATION">INVESTIGATION</option>
+                  <option value="TASK">TASK</option>
+                </select>
               </div>
               <div class="form-group" style="flex:1 1 180px; min-width:180px;">
                 <label for="createPriority">Priority*</label>
-                <input type="text" id="createPriority" required>
+                <input type="text" id="createPriority" required placeholder="e.g. HIGH">
               </div>
               <div class="form-group" style="flex:1 1 180px; min-width:180px;">
                 <label for="createEntity">Entity*</label>
-                <input type="text" id="createEntity" required>
+                <input type="text" id="createEntity" required placeholder="e.g. Customer123">
               </div>
             </div>
-            <div class="form-row" style="display:flex; gap:1.5rem; flex-wrap:wrap;">
+            <div class="form-row" style="display:flex; gap:1.5rem; flex-wrap:wrap; margin-bottom:1rem;">
               <div class="form-group" style="flex:1 1 180px; min-width:180px;">
                 <label for="createAlertId">Alert ID*</label>
-                <input type="text" id="createAlertId" required>
+                <input type="text" id="createAlertId" required placeholder="e.g. A12345">
               </div>
               <div class="form-group" style="flex:1 1 180px; min-width:180px;">
                 <label for="createTypology">Typology*</label>
-                <input type="text" id="createTypology" required>
+                <input type="text" id="createTypology" required placeholder="e.g. Fraud">
               </div>
               <div class="form-group" style="flex:1 1 180px; min-width:180px;">
                 <label for="createRiskScore">Risk Score*</label>
-                <input type="number" id="createRiskScore" required min="0" step="0.01">
+                <input type="number" id="createRiskScore" required min="0" step="0.01" placeholder="e.g. 7.5">
               </div>
             </div>
-            <div class="form-group">
+            <div class="form-group" style="margin-bottom:1rem;">
               <label for="createCaseDescription">Description</label>
-              <textarea id="createCaseDescription" rows="3" style="resize:vertical;"></textarea>
+              <textarea id="createCaseDescription" rows="3" style="resize:vertical;" placeholder="Describe the case..."></textarea>
             </div>
-            <div class="form-group">
+            <div class="form-group" style="margin-bottom:1rem;">
               <label for="createCaseAssignee">Assignee</label>
-              <input type="text" id="createCaseAssignee">
+              <input type="text" id="createCaseAssignee" placeholder="Optional">
             </div>
             <div class="form-actions" style="justify-content: flex-end;">
               <button type="submit" class="btn btn-primary">Create</button>
