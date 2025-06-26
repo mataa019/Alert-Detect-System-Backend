@@ -965,7 +965,7 @@ function validateForm() {
     const errors = {};
     
     if (currentMode === 'complete') {
-        // Required fields for complete case
+        // Required fields for complete case (match backend requirements)
         if (!formData.get('caseType')) {
             errors.caseType = 'Case type is required for complete cases';
         }
@@ -977,12 +977,6 @@ function validateForm() {
         }
         if (!formData.get('riskScore') || parseFloat(formData.get('riskScore')) <= 0) {
             errors.riskScore = 'Risk score is required for complete cases';
-        }
-        if (!formData.get('context')?.trim()) {
-            errors.context = 'Context is required for complete cases';
-        }
-        if (!formData.get('evidence')?.trim()) {
-            errors.evidence = 'Evidence is required for complete cases';
         }
     } else {
         // For draft, only description is required
