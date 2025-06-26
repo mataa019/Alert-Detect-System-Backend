@@ -777,7 +777,10 @@ function displayPendingApprovals(cases) {
         return;
     }
     
-    container.innerHTML = cases.map(caseItem => `
+    container.innerHTML = cases.map(caseItem => {
+        // Assume caseItem.taskId is available for the approval task
+        const showActions = hasPermission('APPROVE_CASE') && caseItem.status === 'PENDING_CASE_CREATION_APPROVAL' && caseItem.taskId;
+        return `
         <div class="case-card approval-card">
             <div class="case-header">
                 <div class="case-number">${caseItem.caseNumber}</div>
@@ -813,11 +816,11 @@ function displayPendingApprovals(cases) {
                 <strong>Description:</strong>
                 <p>${caseItem.description || 'No description'}</p>
             </div>            <div class="approval-actions">
-                ${hasPermission('APPROVE_CASE') ? `
-                    <button class="btn btn-success btn-sm" onclick="approveCase('${caseItem.id}', true)">
+                ${showActions ? `
+                    <button class="btn btn-success btn-sm" onclick="handleApprovalTask('${caseItem.taskId}','${caseItem.id}',true)">
                         <i class="fas fa-check"></i> Approve
                     </button>
-                    <button class="btn btn-danger btn-sm" onclick="approveCase('${caseItem.id}', false)">
+                    <button class="btn btn-danger btn-sm" onclick="handleApprovalTask('${caseItem.taskId}','${caseItem.id}',false)">
                         <i class="fas fa-times"></i> Reject
                     </button>
                 ` : `
@@ -831,7 +834,7 @@ function displayPendingApprovals(cases) {
                 </button>
             </div>
         </div>
-    `).join('');
+    `}).join('');
 }
 
 function getRiskLevel(riskScore) {
@@ -880,6 +883,57 @@ async function approveCase(caseId, approved) {
         
     } catch (error) {
         console.error('Error processing approval:', error);
+        showAlert(`Error processing approval: ${error.message}`);
+    }
+}
+
+// Supervisor Approval Workflow
+async function handleApprovalTask(taskId, caseId, approve) {
+    try {
+        let comments = '';
+        if (approve) {
+            comments = prompt('Enter approval comments (optional):') || '';
+        } else {
+            comments = prompt('Enter rejection reason (optional):') || '';
+        }
+        // Update the approval task status
+        await apiRequest(`/task/update/${taskId}`, {
+            method: 'PUT',
+            body: JSON.stringify({
+                action: approve ? 'APPROVE_CASE_CREATION' : 'REJECT_CASE_CREATION',
+                updatedBy: currentUser,
+                comments: comments
+            })
+        });
+        if (approve) {
+            // Create Investigate Case task
+            await apiRequest(`/task/create/${caseId}`, {
+                method: 'POST',
+                body: JSON.stringify({
+                    type: 'INVESTIGATE_CASE',
+                    assignedGroup: 'Investigations',
+                    createdBy: currentUser
+                })
+            });
+            showSuccess('Case approved and investigation task created.');
+        } else {
+            // Reassign Complete Case Creation task to original user
+            await apiRequest(`/task/assign/${taskId}`, {
+                method: 'PUT',
+                body: JSON.stringify({
+                    assignee: null, // backend should assign to original user
+                    updatedBy: currentUser
+                })
+            });
+            showSuccess('Case rejected and returned to draft. Task reassigned.');
+        }
+        // Refresh approvals and dashboard
+        loadApprovals();
+        if (document.getElementById('dashboard').classList.contains('active')) {
+            loadDashboard();
+        }
+    } catch (error) {
+        console.error('Error processing approval task:', error);
         showAlert(`Error processing approval: ${error.message}`);
     }
 }
