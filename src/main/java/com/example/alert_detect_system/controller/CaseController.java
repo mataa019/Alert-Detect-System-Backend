@@ -6,6 +6,8 @@ import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.CrossOrigin;
@@ -25,8 +27,6 @@ import com.example.alert_detect_system.dto.CaseRequestDto;
 import com.example.alert_detect_system.service.AuditService;
 import com.example.alert_detect_system.service.CaseService;
 import com.example.alert_detect_system.service.TaskService;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/cases")
