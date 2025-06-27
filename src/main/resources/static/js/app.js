@@ -964,35 +964,34 @@ async function handleApprovalTask(taskId, caseId, approve, comments = '') {
 function showSupervisorApprovalModal(caseId, taskId) {
     apiRequest(`/cases/${caseId}`)
         .then(caseItem => {
+            // Only inject the approval form, not a full modal structure
             const modalBody = document.getElementById('modal-body');
             modalBody.innerHTML = `
-                <div class="case-details-modal">
-                    <h3>Case Approval Review</h3>
-                    <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-                        <div class="case-detail"><label>Case Number</label><span>${caseItem.caseNumber}</span></div>
-                        <div class="case-detail"><label>Status</label><span class="case-status status-${caseItem.status.toLowerCase()}">${formatStatus(caseItem.status)}</span></div>
-                        <div class="case-detail"><label>Type</label><span>${caseItem.caseType || 'N/A'}</span></div>
-                        <div class="case-detail"><label>Priority</label><span>${caseItem.priority || 'N/A'}</span></div>
-                        <div class="case-detail"><label>Risk Score</label><span>${caseItem.riskScore || 'N/A'}</span></div>
-                        <div class="case-detail"><label>Entity</label><span>${caseItem.entity || 'N/A'}</span></div>
-                        <div class="case-detail"><label>Alert ID</label><span>${caseItem.alertId || 'N/A'}</span></div>
-                        <div class="case-detail"><label>Typology</label><span>${caseItem.typology || 'N/A'}</span></div>
-                        <div class="case-detail"><label>Created By</label><span>${caseItem.createdBy}</span></div>
-                        <div class="case-detail"><label>Created Date</label><span>${formatDate(caseItem.createdDate)}</span></div>
-                    </div>
-                    <div class="case-detail" style="margin-bottom: 1rem;">
-                        <label>Description</label>
-                        <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px; margin-top: 0.5rem;">${caseItem.description || 'No description provided'}</div>
-                    </div>
-                    <div class="approval-comments-group">
-                        <label for="approval-comments">Comments (required):</label>
-                        <textarea id="approval-comments" rows="3" style="width:100%;"></textarea>
-                    </div>
-                    <div class="approval-actions-modal" style="margin-top:1.5rem; display:flex; gap:1rem;">
-                        <button class="btn btn-success" id="approve-btn"><i class='fas fa-check'></i> Approve</button>
-                        <button class="btn btn-danger" id="reject-btn"><i class='fas fa-times'></i> Reject</button>
-                        <button class="btn btn-secondary" id="cancel-btn">Cancel</button>
-                    </div>
+                <h3>Case Approval Review</h3>
+                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
+                    <div class="case-detail"><label>Case Number</label><span>${caseItem.caseNumber}</span></div>
+                    <div class="case-detail"><label>Status</label><span class="case-status status-${caseItem.status.toLowerCase()}">${formatStatus(caseItem.status)}</span></div>
+                    <div class="case-detail"><label>Type</label><span>${caseItem.caseType || 'N/A'}</span></div>
+                    <div class="case-detail"><label>Priority</label><span>${caseItem.priority || 'N/A'}</span></div>
+                    <div class="case-detail"><label>Risk Score</label><span>${caseItem.riskScore || 'N/A'}</span></div>
+                    <div class="case-detail"><label>Entity</label><span>${caseItem.entity || 'N/A'}</span></div>
+                    <div class="case-detail"><label>Alert ID</label><span>${caseItem.alertId || 'N/A'}</span></div>
+                    <div class="case-detail"><label>Typology</label><span>${caseItem.typology || 'N/A'}</span></div>
+                    <div class="case-detail"><label>Created By</label><span>${caseItem.createdBy}</span></div>
+                    <div class="case-detail"><label>Created Date</label><span>${formatDate(caseItem.createdDate)}</span></div>
+                </div>
+                <div class="case-detail" style="margin-bottom: 1rem;">
+                    <label>Description</label>
+                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px; margin-top: 0.5rem;">${caseItem.description || 'No description provided'}</div>
+                </div>
+                <div class="approval-comments-group">
+                    <label for="approval-comments">Comments (required):</label>
+                    <textarea id="approval-comments" rows="3" style="width:100%;"></textarea>
+                </div>
+                <div class="approval-actions-modal" style="margin-top:1.5rem; display:flex; gap:1rem;">
+                    <button class="btn btn-success" id="approve-btn"><i class='fas fa-check'></i> Approve</button>
+                    <button class="btn btn-danger" id="reject-btn"><i class='fas fa-times'></i> Reject</button>
+                    <button class="btn btn-secondary" id="cancel-btn">Cancel</button>
                 </div>
             `;
             document.getElementById('modal-title').textContent = `Admin Approval - ${caseItem.caseNumber}`;
