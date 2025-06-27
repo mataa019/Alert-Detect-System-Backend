@@ -43,8 +43,7 @@ let currentUserData = USERS[currentUser];
 
 // Role-based permissions
 function hasPermission(action) {
-    const userRole = currentUserData.role;
-    
+    const userRole = (currentUserData.role || '').toUpperCase();
     switch (action) {
         case 'CREATE_CASE':
             return [USER_ROLES.ANALYST, USER_ROLES.ADMIN].includes(userRole);
@@ -76,14 +75,14 @@ function switchUser(username) {
 }
 
 function updateUIBasedOnRole() {
-    const userRole = currentUserData.role;
+    const userRole = (currentUserData.role || '').toUpperCase();
     // Update header to show current user
     const userInfo = document.querySelector('.user-info');
     if (userInfo) {
         userInfo.innerHTML = `
             <i class="fas fa-user"></i>
             <span>${currentUserData.name}</span>
-            <span class="role-badge role-${userRole.toLowerCase()}">${userRole.toUpperCase()}</span>
+            <span class="role-badge role-${userRole.toLowerCase()}">${userRole}</span>
         `;
     }
     // Update user selector
@@ -1414,7 +1413,8 @@ async function abandonCase(caseId) {
 function updatePrivilegeMessage(user) {
     const msg = document.getElementById('supervisor-approval-message');
     if (!msg) return;
-    if (user && user.role !== 'admin' && user.role !== 'ADMIN') {
+    const role = (user && user.role) ? user.role.toUpperCase() : '';
+    if (role !== 'ADMIN') {
         msg.style.display = 'flex';
     } else {
         msg.style.display = 'none';
