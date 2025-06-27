@@ -238,22 +238,6 @@ public class CaseController {
     }
 
     /**
-     * 7. GET USER ROLE (mocked for demo)
-     * GET /api/user/role?user=username
-     */
-    @GetMapping("/user/role")
-    public ResponseEntity<Map<String, String>> getUserRole(@RequestParam String user) {
-        // Mock logic: 'admin' user is Admin, others are Analyst
-        String role = "analyst";
-        if ("admin".equalsIgnoreCase(user)) {
-            role = "admin";
-        }
-        Map<String, String> response = new HashMap<>();
-        response.put("role", role);
-        return ResponseEntity.ok(response);
-    }
-
-    /**
      * ABANDON CASE endpoint
      * PUT /api/cases/abandon/{caseId}
      * Body: { "abandonedBy": "username", "reason": "..." }
