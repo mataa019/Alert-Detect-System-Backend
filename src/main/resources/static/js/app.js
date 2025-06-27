@@ -316,7 +316,7 @@ async function loadRecentCases() {
         const cases = await apiRequest('/cases');
         let filteredCases = cases;
         if (currentUserData.role === USER_ROLES.ANALYST) {
-            filteredCases = cases.filter(c => c.createdBy === currentUser);
+            filteredCases = cases.filter(item => item.case.createdBy === currentUser);
         }
         const recentCases = filteredCases.slice(0, 5); // Get last 5 cases for role
         const container = document.getElementById('recent-cases');
@@ -330,15 +330,15 @@ async function loadRecentCases() {
             `;
             return;
         }
-        container.innerHTML = recentCases.map(caseItem => `
-            <div class="case-card" onclick="showCaseDetails('${caseItem.id}')">
+        container.innerHTML = recentCases.map(item => `
+            <div class="case-card" onclick="showCaseDetails('${item.case.id}')">
                 <div class="case-header">
-                    <div class="case-number">${caseItem.caseNumber}</div>
-                    <div class="case-status status-${caseItem.status.toLowerCase()}">${formatStatus(caseItem.status)}</div>
+                    <div class="case-number">${item.case.caseNumber}</div>
+                    <div class="case-status status-${item.case.status.toLowerCase()}">${formatStatus(item.case.status)}</div>
                 </div>
-                <div class="case-description">${caseItem.description || 'No description'}</div>
+                <div class="case-description">${item.case.description || 'No description'}</div>
                 <div style="margin-top: 0.5rem; font-size: 0.8rem; color: #6c757d;">
-                    Created: ${formatDate(caseItem.createdDate)}
+                    Created: ${formatDate(item.case.createdDate)}
                 </div>
             </div>
         `).join('');
