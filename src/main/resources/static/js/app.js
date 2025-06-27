@@ -21,15 +21,22 @@ const VALID_TYPOLOGIES = [
 // User Management and Role System
 const USER_ROLES = {
     ANALYST: 'ANALYST',
-    SUPERVISOR: 'SUPERVISOR',
     ADMIN: 'ADMIN'
 };
 
 const USERS = {
-    'analyst1': { name: 'John Analyst', role: USER_ROLES.ANALYST, email: 'john.analyst@company.com' },
-    'analyst2': { name: 'Jane Analyst', role: USER_ROLES.ANALYST, email: 'jane.analyst@company.com' },
-    'supervisor1': { name: 'Mike Supervisor', role: USER_ROLES.SUPERVISOR, email: 'supervisor1@example.com' },
-    'admin1': { name: 'Sarah Admin', role: USER_ROLES.ADMIN, email: 'admin1@example.com' }
+    admin1: {
+        id: 'admin1',
+        name: 'Sarah Admin',
+        role: 'admin',
+        display: 'Sarah Admin (Admin)'
+    },
+    analyst1: {
+        id: 'analyst1',
+        name: 'Jane Analyst',
+        role: 'analyst',
+        display: 'Jane Analyst (Analyst)'
+    }
 };
 
 let currentUserData = USERS[currentUser];
@@ -40,15 +47,15 @@ function hasPermission(action) {
     
     switch (action) {
         case 'CREATE_CASE':
-            return [USER_ROLES.ANALYST, USER_ROLES.SUPERVISOR, USER_ROLES.ADMIN].includes(userRole);
+            return [USER_ROLES.ANALYST, USER_ROLES.ADMIN].includes(userRole);
         case 'APPROVE_CASE':
-            return [USER_ROLES.SUPERVISOR, USER_ROLES.ADMIN].includes(userRole);
+            return userRole === USER_ROLES.ADMIN;
         case 'ASSIGN_TASK':
-            return [USER_ROLES.SUPERVISOR, USER_ROLES.ADMIN].includes(userRole);
+            return userRole === USER_ROLES.ADMIN;
         case 'VIEW_ALL_CASES':
-            return [USER_ROLES.SUPERVISOR, USER_ROLES.ADMIN].includes(userRole);
+            return [USER_ROLES.ADMIN].includes(userRole);
         case 'COMPLETE_TASK':
-            return [USER_ROLES.ANALYST, USER_ROLES.SUPERVISOR, USER_ROLES.ADMIN].includes(userRole);
+            return [USER_ROLES.ANALYST, USER_ROLES.ADMIN].includes(userRole);
         case 'MANAGE_USERS':
             return userRole === USER_ROLES.ADMIN;
         default:
@@ -99,7 +106,7 @@ function updateUIBasedOnRole() {
     
     if (assigneeGroup && assigneeInput) {
         if (hasPermission('VIEW_ALL_CASES')) {
-            // Supervisors can view tasks for any user
+            // Admins can view tasks for any user
             assigneeGroup.style.display = 'flex';
             assigneeInput.value = currentUser;
             assigneeInput.placeholder = 'Enter username to view their tasks';
@@ -824,7 +831,7 @@ function displayPendingApprovals(cases) {
                 ` : `
                     <div class="permission-notice">
                         <i class="fas fa-info-circle"></i>
-                        You need supervisor privileges to approve cases
+                        You need admin privileges to approve cases
                     </div>
                 `}
                 <button class="btn btn-info btn-sm" onclick="showCaseDetails('${caseItem.id}')">
@@ -1070,7 +1077,7 @@ function displayPendingApprovals(cases) {
                 ` : `
                     <div class="permission-notice">
                         <i class="fas fa-info-circle"></i>
-                        You need supervisor privileges to approve cases
+                        You need admin privileges to approve cases
                     </div>
                 `}
                 <button class="btn btn-info btn-sm" onclick="showCaseDetails('${caseItem.id}')">
