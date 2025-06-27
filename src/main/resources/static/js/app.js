@@ -845,10 +845,23 @@ window.submitInlineApproval = async function(idx, taskId, caseId, approve) {
     }
     try {
         await handleApprovalTask(taskId, caseId, approve, comments);
-        hideInlineApprovalForm(idx);
-        loadApprovals();
+        // Remove the approved/rejected card from the DOM immediately
+        const card = document.getElementById(`approval-card-${idx}`);
+        if (card) card.remove();
+        // Optionally, reload dashboard stats
         if (document.getElementById('dashboard').classList.contains('active')) {
             loadDashboard();
+        }
+        // If no more pending approvals, show empty state
+        const container = document.getElementById('pending-approvals');
+        if (!container.querySelector('.case-card')) {
+            container.innerHTML = `
+                <div class="empty-state">
+                    <i class="fas fa-check-circle"></i>
+                    <h3>No Pending Approvals</h3>
+                    <p>All cases have been reviewed and approved.</p>
+                </div>
+            `;
         }
     } catch (err) {
         showAlert('Error submitting approval: ' + (err.message || err));
