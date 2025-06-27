@@ -353,10 +353,6 @@
         roleBadge.textContent = userInfo.role;
         roleBadge.className = 'role-badge role-' + userInfo.role.toLowerCase();
     }
-    document.getElementById('user-select').addEventListener('change', updateUserInfo);
-    document.addEventListener('DOMContentLoaded', updateUserInfo);
-
-    // Show supervisor message if not supervisor
     function updateSupervisorApprovalMessage() {
         const userSelect = document.getElementById('user-select');
         const selectedUser = userSelect ? userSelect.value : '';
@@ -370,11 +366,10 @@
             }
         }
     }
-    document.getElementById('user-select').addEventListener('change', updateSupervisorApprovalMessage);
-    document.addEventListener('DOMContentLoaded', updateSupervisorApprovalMessage);
-
     function switchUser(userId) {
         console.log('Switching user to:', userId);
+        // Set the dropdown value in case called programmatically
+        document.getElementById('user-select').value = userId;
         updateUserInfo();
         updateSupervisorApprovalMessage();
         if (typeof loadApprovals === 'function') {
@@ -384,6 +379,12 @@
             loadTasks(); // Reload tasks for new user
         }
     }
+    // Only use switchUser for user switching and on page load
+    document.addEventListener('DOMContentLoaded', function() {
+        switchUser(document.getElementById('user-select').value);
+    });
+    // Remove extra listeners for updateUserInfo and updateSupervisorApprovalMessage
+    // The onchange on the select already calls switchUser
     </script>
 </body>
 </html>
