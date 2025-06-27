@@ -360,6 +360,7 @@
     function updateSupervisorApprovalMessage() {
         const userSelect = document.getElementById('user-select');
         const selectedUser = userSelect ? userSelect.value : '';
+        console.log('updateSupervisorApprovalMessage, selectedUser:', selectedUser);
         const supervisorMessage = document.getElementById('supervisor-approval-message');
         if (supervisorMessage) {
             if (selectedUser !== 'supervisor1') {
@@ -371,6 +372,18 @@
     }
     document.getElementById('user-select').addEventListener('change', updateSupervisorApprovalMessage);
     document.addEventListener('DOMContentLoaded', updateSupervisorApprovalMessage);
+
+    function switchUser(userId) {
+        console.log('Switching user to:', userId);
+        updateUserInfo();
+        updateSupervisorApprovalMessage();
+        if (typeof loadApprovals === 'function') {
+            loadApprovals(); // Reload approvals for new user
+        }
+        if (typeof loadTasks === 'function') {
+            loadTasks(); // Reload tasks for new user
+        }
+    }
     </script>
 </body>
 </html>
