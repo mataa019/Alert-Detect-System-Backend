@@ -208,6 +208,12 @@ function getRiskLevel(riskScore) {
     return 'low';
 }
 
+// Utility to add cache-busting param to URLs
+function cacheBust(url) {
+    const sep = url.includes('?') ? '&' : '?';
+    return url + sep + '_=' + Date.now();
+}
+
 // API Functions
 async function apiRequest(endpoint, options = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
