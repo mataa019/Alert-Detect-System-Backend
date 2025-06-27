@@ -989,8 +989,8 @@ function showSupervisorApprovalModal(caseId, taskId) {
                         <textarea id="approval-comments" rows="3" style="width:100%;"></textarea>
                     </div>
                     <div class="approval-actions-modal" style="margin-top:1.5rem; display:flex; gap:1rem;">
-                        <button class="btn btn-success" onclick="submitSupervisorApproval('${taskId}','${caseId}',true)"><i class='fas fa-check'></i> Approve</button>
-                        <button class="btn btn-danger" onclick="submitSupervisorApproval('${taskId}','${caseId}',false)"><i class='fas fa-times'></i> Reject</button>
+                        <button class="btn btn-success" onclick="window.submitSupervisorApproval && window.submitSupervisorApproval('${taskId}','${caseId}',true)"><i class='fas fa-check'></i> Approve</button>
+                        <button class="btn btn-danger" onclick="window.submitSupervisorApproval && window.submitSupervisorApproval('${taskId}','${caseId}',false)"><i class='fas fa-times'></i> Reject</button>
                         <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
                     </div>
                 </div>
@@ -1005,9 +1005,14 @@ function showSupervisorApprovalModal(caseId, taskId) {
 window.showSupervisorApprovalModal = showSupervisorApprovalModal;
 
 async function submitSupervisorApproval(taskId, caseId, approve) {
-    const comments = document.getElementById('approval-comments').value;
-    await handleApprovalTask(taskId, caseId, approve, comments);
-    closeModal();
+    try {
+        const comments = document.getElementById('approval-comments').value;
+        await handleApprovalTask(taskId, caseId, approve, comments);
+        closeModal();
+    } catch (err) {
+        console.error('Error in submitSupervisorApproval:', err);
+        showAlert('Error submitting approval: ' + (err.message || err));
+    }
 }
 window.submitSupervisorApproval = submitSupervisorApproval;
 
