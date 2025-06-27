@@ -38,7 +38,7 @@
                     <span class="role-badge" id="user-role-badge">ADMIN</span>
                 </div>
                 <div class="user-switcher">
-                    <select id="user-select" onchange="switchUser(this.value)">
+                    <select id="user-select">
                         <option value="admin1">Sarah Admin (Admin)</option>
                         <option value="supervisor1">Mike Supervisor (Supervisor)</option>
                         <option value="analyst1">Jane Analyst (Analyst)</option>
@@ -381,6 +381,9 @@
     }
     // Only use switchUser for user switching and on page load
     document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('user-select').addEventListener('change', function(e) {
+            switchUser(e.target.value);
+        });
         switchUser(document.getElementById('user-select').value);
     });
     // Remove extra listeners for updateUserInfo and updateSupervisorApprovalMessage
