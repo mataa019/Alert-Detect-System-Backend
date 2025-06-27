@@ -307,6 +307,11 @@ async function loadCaseStats() {
             filteredCases.filter(c => c.status === 'DRAFT').length;
         document.getElementById('pending-cases').textContent = 
             filteredCases.filter(c => c.status === 'PENDING_CASE_CREATION_APPROVAL').length;
+        // Add rejected cases stat if you want to display it
+        const rejectedStat = document.getElementById('rejected-cases');
+        if (rejectedStat) {
+            rejectedStat.textContent = filteredCases.filter(c => c.status === 'REJECTED').length;
+        }
         // Load tasks count
         try {
             const tasks = await apiRequest(`/tasks/my/${currentUser}`);
@@ -320,6 +325,8 @@ async function loadCaseStats() {
         document.getElementById('total-cases').textContent = '0';
         document.getElementById('draft-cases').textContent = '0';
         document.getElementById('pending-cases').textContent = '0';
+        const rejectedStat = document.getElementById('rejected-cases');
+        if (rejectedStat) rejectedStat.textContent = '0';
         document.getElementById('my-tasks').textContent = '0';
     }
 }
@@ -798,7 +805,7 @@ function displayPendingApprovals(cases) {
         <div class="case-card approval-card" id="approval-card-${idx}">
             <div class="case-header">
                 <div class="case-number">${caseItem.caseNumber}</div>
-                <div class="case-status status-pending-approval">Pending Approval</div>
+                <div class="case-status status-${caseItem.status.toLowerCase()}">${formatStatus(caseItem.status)}</div>
             </div>
             <div class="case-details">
                 <div class="case-detail"><label>Type</label><span>${caseItem.caseType || 'N/A'}</span></div>
@@ -902,7 +909,7 @@ async function handleApprovalTask(taskId, caseId, approve, comments = '') {
             apiRequest(`/tasks/${taskId}`)
         ]);
         // Check case status
-        if (caseItem.status !== 'PENDING_CASE_CREATION') {
+        if (caseItem.status !== 'PENDING_CASE_CREATION_APPROVAL') {
             showAlert('Case is not pending approval. Approval/rejection not allowed.');
             return;
         }
@@ -940,15 +947,7 @@ async function handleApprovalTask(taskId, caseId, approve, comments = '') {
             });
             showSuccess('Case approved and investigation task created.');
         } else {
-            // Reassign Complete Case Creation task to original user
-            await apiRequest(`/task/assign/${taskId}`, {
-                method: 'PUT',
-                body: JSON.stringify({
-                    assignee: null, // backend should assign to original user
-                    updatedBy: currentUser
-                })
-            });
-            showSuccess('Case rejected and returned to draft. Task reassigned.');
+            showSuccess('Case rejected.');
         }
         // Refresh approvals and dashboard
         loadApprovals();
