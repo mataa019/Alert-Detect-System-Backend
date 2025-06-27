@@ -45,6 +45,8 @@ public class CaseController {
     @PostMapping
     public ResponseEntity<CaseModel> createCase(@RequestBody CaseRequestDto caseRequest) {
         String createdBy = caseRequest.getCreatedBy() != null ? caseRequest.getCreatedBy() : "user";
+        // Always assign to admin1
+        caseRequest.setAssignee("admin1");
         CaseModel createdCase = caseService.createCase(caseRequest, createdBy);
         return ResponseEntity.ok(createdCase);
     }
