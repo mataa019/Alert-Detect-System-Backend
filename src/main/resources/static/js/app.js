@@ -216,7 +216,12 @@ function cacheBust(url) {
 
 // API Functions
 async function apiRequest(endpoint, options = {}) {
-    const url = `${API_BASE_URL}${endpoint}`;
+    let url = `${API_BASE_URL}${endpoint}`;
+    // Add cache busting for GET requests
+    const method = (options.method || 'GET').toUpperCase();
+    if (method === 'GET') {
+        url = cacheBust(url);
+    }
     const config = {
         ...options,
         headers: {
