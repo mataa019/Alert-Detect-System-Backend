@@ -90,7 +90,7 @@ public class CaseService {
                 return completedCase;
             case "approve":
                 boolean approved = (Boolean) params.getOrDefault("approved", false);
-                CaseStatus newStatus = approved ? CaseStatus.READY_FOR_ASSIGNMENT : CaseStatus.DRAFT;
+                CaseStatus newStatus = approved ? CaseStatus.READY_FOR_ASSIGNMENT : CaseStatus.REJECTED;
                 return updateCaseStatus(caseId, newStatus, performedBy);
             case "status":
                 CaseStatus status = (CaseStatus) params.get("status");
