@@ -337,57 +337,5 @@
     </div>
 
     <script src="js/app.js"></script>
-    <script>
-    // User info mapping
-    const USER_DISPLAY = {
-        'admin1': { name: 'Sarah Admin', role: 'ADMIN' },
-        'supervisor1': { name: 'Mike Supervisor', role: 'SUPERVISOR' },
-        'analyst1': { name: 'Jane Analyst', role: 'ANALYST' }
-    };
-    function updateUserInfo() {
-        const userSelect = document.getElementById('user-select');
-        const selectedUser = userSelect ? userSelect.value : '';
-        const userInfo = USER_DISPLAY[selectedUser] || { name: '', role: '' };
-        document.getElementById('user-name').textContent = userInfo.name;
-        const roleBadge = document.getElementById('user-role-badge');
-        roleBadge.textContent = userInfo.role;
-        roleBadge.className = 'role-badge role-' + userInfo.role.toLowerCase();
-    }
-    function updateSupervisorApprovalMessage() {
-        const userSelect = document.getElementById('user-select');
-        const selectedUser = userSelect ? userSelect.value : '';
-        console.log('updateSupervisorApprovalMessage, selectedUser:', selectedUser);
-        const supervisorMessage = document.getElementById('supervisor-approval-message');
-        if (supervisorMessage) {
-            if (selectedUser !== 'supervisor1') {
-                supervisorMessage.style.display = 'block';
-            } else {
-                supervisorMessage.style.display = 'none';
-            }
-        }
-    }
-    function switchUser(userId) {
-        console.log('Switching user to:', userId);
-        // Set the dropdown value in case called programmatically
-        document.getElementById('user-select').value = userId;
-        updateUserInfo();
-        updateSupervisorApprovalMessage();
-        if (typeof loadApprovals === 'function') {
-            loadApprovals(); // Reload approvals for new user
-        }
-        if (typeof loadTasks === 'function') {
-            loadTasks(); // Reload tasks for new user
-        }
-    }
-    // Only use switchUser for user switching and on page load
-    document.addEventListener('DOMContentLoaded', function() {
-        document.getElementById('user-select').addEventListener('change', function(e) {
-            switchUser(e.target.value);
-        });
-        switchUser(document.getElementById('user-select').value);
-    });
-    // Remove extra listeners for updateUserInfo and updateSupervisorApprovalMessage
-    // The onchange on the select already calls switchUser
-    </script>
 </body>
 </html>
