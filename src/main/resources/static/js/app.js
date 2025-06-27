@@ -845,24 +845,43 @@ window.submitInlineApproval = async function(idx, taskId, caseId, approve) {
     }
     try {
         await handleApprovalTask(taskId, caseId, approve, comments);
-        // Remove the approved/rejected card from the DOM immediately
+        // Show status message in the card instead of removing it
         const card = document.getElementById(`approval-card-${idx}`);
-        if (card) card.remove();
+        if (card) {
+            card.querySelector('.inline-approval-form').style.display = 'none';
+            const statusMsg = document.createElement('div');
+            statusMsg.className = 'approval-status-msg';
+            statusMsg.style.margin = '1rem 0';
+            statusMsg.style.fontWeight = 'bold';
+            statusMsg.style.color = approve ? '#388e3c' : '#b71c1c';
+            statusMsg.innerHTML = approve
+                ? "<i class='fas fa-check-circle'></i> Case Approved"
+                : "<i class='fas fa-times-circle'></i> Case Rejected";
+            card.appendChild(statusMsg);
+            // Optionally, fade out the card after a delay
+            setTimeout(() => {
+                card.style.transition = 'opacity 0.5s';
+                card.style.opacity = 0;
+                setTimeout(() => card.remove(), 600);
+            }, 1500);
+        }
         // Optionally, reload dashboard stats
         if (document.getElementById('dashboard').classList.contains('active')) {
             loadDashboard();
         }
         // If no more pending approvals, show empty state
         const container = document.getElementById('pending-approvals');
-        if (!container.querySelector('.case-card')) {
-            container.innerHTML = `
-                <div class="empty-state">
-                    <i class="fas fa-check-circle"></i>
-                    <h3>No Pending Approvals</h3>
-                    <p>All cases have been reviewed and approved.</p>
-                </div>
-            `;
-        }
+        setTimeout(() => {
+            if (!container.querySelector('.case-card')) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <i class="fas fa-check-circle"></i>
+                        <h3>No Pending Approvals</h3>
+                        <p>All cases have been reviewed and approved.</p>
+                    </div>
+                `;
+            }
+        }, 1700);
     } catch (err) {
         showAlert('Error submitting approval: ' + (err.message || err));
     }
