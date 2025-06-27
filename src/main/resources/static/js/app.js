@@ -1421,6 +1421,21 @@ document.addEventListener('DOMContentLoaded', function() {
     refreshAllData();
 });
 
+// Add user dropdown event handler to avoid CSP issues
+// This must be at the end of the file so switchUser is defined
+
+document.addEventListener('DOMContentLoaded', function() {
+    var userSelect = document.getElementById('user-select');
+    if (userSelect) {
+        userSelect.addEventListener('change', function(e) {
+            console.log('Dropdown changed to:', e.target.value);
+            if (typeof switchUser === 'function') {
+                switchUser(e.target.value);
+            }
+        });
+    }
+});
+
 // Test connection function
 async function testConnection() {
     try {
