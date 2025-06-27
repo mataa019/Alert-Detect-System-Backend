@@ -985,18 +985,29 @@ function showSupervisorApprovalModal(caseId, taskId) {
                         <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px; margin-top: 0.5rem;">${caseItem.description || 'No description provided'}</div>
                     </div>
                     <div class="approval-comments-group">
-                        <label for="approval-comments">Comments (optional):</label>
+                        <label for="approval-comments">Comments (required):</label>
                         <textarea id="approval-comments" rows="3" style="width:100%;"></textarea>
                     </div>
                     <div class="approval-actions-modal" style="margin-top:1.5rem; display:flex; gap:1rem;">
-                        <button class="btn btn-success" onclick="window.submitSupervisorApproval && window.submitSupervisorApproval('${taskId}','${caseId}',true)"><i class='fas fa-check'></i> Approve</button>
-                        <button class="btn btn-danger" onclick="window.submitSupervisorApproval && window.submitSupervisorApproval('${taskId}','${caseId}',false)"><i class='fas fa-times'></i> Reject</button>
-                        <button class="btn btn-secondary" onclick="closeModal()">Cancel</button>
+                        <button class="btn btn-success" id="approve-btn"><i class='fas fa-check'></i> Approve</button>
+                        <button class="btn btn-danger" id="reject-btn"><i class='fas fa-times'></i> Reject</button>
+                        <button class="btn btn-secondary" id="cancel-btn">Cancel</button>
                     </div>
                 </div>
             `;
             document.getElementById('modal-title').textContent = `Admin Approval - ${caseItem.caseNumber}`;
             document.getElementById('case-modal').style.display = 'flex';
+
+            // Attach event listeners
+            document.getElementById('approve-btn').onclick = function() {
+                submitSupervisorApproval(taskId, caseId, true);
+            };
+            document.getElementById('reject-btn').onclick = function() {
+                submitSupervisorApproval(taskId, caseId, false);
+            };
+            document.getElementById('cancel-btn').onclick = function() {
+                closeModal();
+            };
         })
         .catch(error => {
             showAlert('Error loading case details for approval: ' + error.message);
