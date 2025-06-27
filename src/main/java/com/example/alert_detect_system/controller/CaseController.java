@@ -144,7 +144,11 @@ public class CaseController {
                         auditService.logCaseAction(caseId, "UNAUTHORIZED_APPROVAL_ATTEMPT", updatedBy, "Tried to approve/reject case not in PENDING_CASE_CREATION_APPROVAL");
                         return ResponseEntity.status(403).body("Case is not pending approval");
                     }
-                    // TODO: Optionally check if supervisor has claimed the approval task (handled in TaskService)
+                    // Admin-only approval check
+                    if (!"admin1".equalsIgnoreCase(updatedBy)) {
+                        auditService.logCaseAction(caseId, "UNAUTHORIZED_APPROVAL_ATTEMPT", updatedBy, "Non-admin tried to approve/reject case");
+                        return ResponseEntity.status(403).body("Only admin can approve or reject cases");
+                    }
                     CaseModel approvedCase = caseService.performCaseAction(caseId, "approve", null, updatedBy, approvalParams);
                     // Log approval/rejection event
                     auditService.logCaseAction(caseId, approved ? "CASE_APPROVED" : "CASE_REJECTED", updatedBy, comments);
