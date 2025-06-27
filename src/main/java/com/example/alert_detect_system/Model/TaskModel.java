@@ -180,4 +180,12 @@ public class TaskModel {
     public void setCompletedAt(LocalDateTime completedAt) {
         this.completedAt = completedAt;
     }
+
+    public UUID getId() {
+        return id;
+    }
+
+    public void setId(UUID id) {
+        this.id = id;
+    }
 }
