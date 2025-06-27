@@ -86,7 +86,9 @@ public class CaseService {
             case "update":
                 return updateCase(caseId, updateRequest, performedBy);
             case "complete":
+                logger.debug("[SERVICE] Performing COMPLETE action for caseId: {} by user: {}", caseId, performedBy);
                 CaseModel completedCase = updateCaseStatus(caseId, CaseStatus.PENDING_CASE_CREATION_APPROVAL, performedBy);
+                logger.debug("[SERVICE] Case after status update: {}", completedCase);
                 createApprovalTask(caseId, performedBy);
                 return completedCase;
             case "approve":

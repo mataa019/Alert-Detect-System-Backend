@@ -25,11 +25,14 @@ import com.example.alert_detect_system.dto.CaseRequestDto;
 import com.example.alert_detect_system.service.AuditService;
 import com.example.alert_detect_system.service.CaseService;
 import com.example.alert_detect_system.service.TaskService;
+import org.slf4j.Logger;
+import org.slf4j.LoggerFactory;
 
 @RestController
 @RequestMapping("/api/cases")
 @CrossOrigin(origins = {"http://localhost:5173", "http://localhost:5174"})
 public class CaseController {
+    private static final Logger logger = LoggerFactory.getLogger(CaseController.class);
     
     @Autowired
     private CaseService caseService;
@@ -122,9 +125,11 @@ public class CaseController {
             
             switch (action.toLowerCase()) {
                 case "complete" -> {
+                    logger.debug("[API] Received COMPLETE action for caseId: {} by user: {}. Request body: {}", caseId, updatedBy, requestBody);
                     // Complete draft case using consolidated method
                     CaseRequestDto updateRequest = mapToDto(requestBody);
                     CaseModel completedCase = caseService.performCaseAction(caseId, "complete", updateRequest, updatedBy, Map.of());
+                    logger.debug("[API] Case after COMPLETE action: {}", completedCase);
                     return ResponseEntity.ok(completedCase);
                 }
                 case "approve" -> {
