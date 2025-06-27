@@ -75,6 +75,7 @@ public class CaseService {
         existingCase.setStatus(newStatus);
         existingCase.setUpdatedAt(LocalDateTime.now());
         CaseModel savedCase = caseRepository.save(existingCase);
+        logger.info("Case status updated and saved. Case ID: {}, Old Status: {}, New Status: {}", caseId, oldStatus, newStatus);
         auditService.logCaseStatusChange(caseId, updatedBy, oldStatus.toString(), newStatus.toString());
         return savedCase;
     }
