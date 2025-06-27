@@ -1006,7 +1006,11 @@ window.showSupervisorApprovalModal = showSupervisorApprovalModal;
 
 async function submitSupervisorApproval(taskId, caseId, approve) {
     try {
-        const comments = document.getElementById('approval-comments').value;
+        const comments = document.getElementById('approval-comments').value.trim();
+        if (!comments) {
+            showAlert('Comments are required for both approval and rejection. Please provide your comments.');
+            return;
+        }
         await handleApprovalTask(taskId, caseId, approve, comments);
         closeModal();
     } catch (err) {
