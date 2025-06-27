@@ -201,6 +201,13 @@ function formatStatus(status) {
     return status.replace(/_/g, ' ').toLowerCase().replace(/\b\w/g, l => l.toUpperCase());
 }
 
+function getRiskLevel(riskScore) {
+    if (!riskScore) return 'unknown';
+    if (riskScore >= 80) return 'high';
+    if (riskScore >= 50) return 'medium';
+    return 'low';
+}
+
 // API Functions
 async function apiRequest(endpoint, options = {}) {
     const url = `${API_BASE_URL}${endpoint}`;
