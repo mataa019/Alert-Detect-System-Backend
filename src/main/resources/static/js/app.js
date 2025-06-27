@@ -999,14 +999,13 @@ function showSupervisorApprovalModal(caseId, taskId) {
                     </div>
                 </div>
             `;
-            document.getElementById('modal-title').textContent = `Supervisor Approval - ${caseItem.caseNumber}`;
+            document.getElementById('modal-title').textContent = `Admin Approval - ${caseItem.caseNumber}`;
             document.getElementById('case-modal').style.display = 'flex';
         })
         .catch(error => {
             showAlert('Error loading case details for approval: ' + error.message);
         });
 }
-
 window.showSupervisorApprovalModal = showSupervisorApprovalModal;
 
 async function submitSupervisorApproval(taskId, caseId, approve) {
@@ -1409,6 +1408,17 @@ async function abandonCase(caseId) {
     } catch (error) {
         console.error('Error abandoning case:', error);
         showAlert(`Error abandoning case: ${error.message}`);
+    }
+}
+
+// Update privilege message logic to only show for non-admins
+function updatePrivilegeMessage(user) {
+    const msg = document.getElementById('supervisor-approval-message');
+    if (!msg) return;
+    if (user && user.role !== 'admin') {
+        msg.style.display = 'flex';
+    } else {
+        msg.style.display = 'none';
     }
 }
 
