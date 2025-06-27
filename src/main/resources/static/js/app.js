@@ -767,7 +767,6 @@ async function loadApprovals() {
 
 function displayPendingApprovals(cases) {
     const container = document.getElementById('pending-approvals');
-    
     if (cases.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
@@ -778,50 +777,28 @@ function displayPendingApprovals(cases) {
         `;
         return;
     }
-    
-    container.innerHTML = cases.map(item => {
+    container.innerHTML = cases.map((item, idx) => {
         const caseItem = item.case;
         const taskId = item.taskId;
         const showActions = hasPermission('APPROVE_CASE') && caseItem.status === 'PENDING_CASE_CREATION_APPROVAL' && taskId;
         return `
-        <div class="case-card approval-card">
+        <div class="case-card approval-card" id="approval-card-${idx}">
             <div class="case-header">
                 <div class="case-number">${caseItem.caseNumber}</div>
                 <div class="case-status status-pending-approval">Pending Approval</div>
             </div>
             <div class="case-details">
-                <div class="case-detail">
-                    <label>Type</label>
-                    <span>${caseItem.caseType || 'N/A'}</span>
-                </div>
-                <div class="case-detail">
-                    <label>Priority</label>
-                    <span class="priority-${caseItem.priority?.toLowerCase() || 'normal'}">${caseItem.priority || 'N/A'}</span>
-                </div>
-                <div class="case-detail">
-                    <label>Risk Score</label>
-                    <span class="risk-score-${getRiskLevel(caseItem.riskScore)}">${caseItem.riskScore || 'N/A'}</span>
-                </div>
-                <div class="case-detail">
-                    <label>Created By</label>
-                    <span>${caseItem.createdBy}</span>
-                </div>
-                <div class="case-detail">
-                    <label>Entity</label>
-                    <span>${caseItem.entity || 'N/A'}</span>
-                </div>
-                <div class="case-detail">
-                    <label>Alert ID</label>
-                    <span>${caseItem.alertId || 'N/A'}</span>
-                </div>
+                <div class="case-detail"><label>Type</label><span>${caseItem.caseType || 'N/A'}</span></div>
+                <div class="case-detail"><label>Priority</label><span class="priority-${caseItem.priority?.toLowerCase() || 'normal'}">${caseItem.priority || 'N/A'}</span></div>
+                <div class="case-detail"><label>Risk Score</label><span class="risk-score-${getRiskLevel(caseItem.riskScore)}">${caseItem.riskScore || 'N/A'}</span></div>
+                <div class="case-detail"><label>Created By</label><span>${caseItem.createdBy}</span></div>
+                <div class="case-detail"><label>Entity</label><span>${caseItem.entity || 'N/A'}</span></div>
+                <div class="case-detail"><label>Alert ID</label><span>${caseItem.alertId || 'N/A'}</span></div>
             </div>
-            <div class="case-description">
-                <strong>Description:</strong>
-                <p>${caseItem.description || 'No description'}</p>
-            </div>
+            <div class="case-description"><strong>Description:</strong><p>${caseItem.description || 'No description'}</p></div>
             <div class="approval-actions">
                 ${showActions ? `
-                    <button class="btn btn-success btn-sm" onclick="showSupervisorApprovalModal('${caseItem.id}','${taskId}')">
+                    <button class="btn btn-success btn-sm" onclick="showInlineApprovalForm(${idx}, '${taskId}', '${caseItem.id}')">
                         <i class="fas fa-check"></i> Review & Approve/Reject
                     </button>
                 ` : `
@@ -834,59 +811,42 @@ function displayPendingApprovals(cases) {
                     <i class="fas fa-eye"></i> View Details
                 </button>
             </div>
+            <div class="inline-approval-form" id="inline-approval-form-${idx}" style="display:none; margin-top:1rem; background:#f8f9fa; padding:1rem; border-radius:6px;">
+                <label for="inline-approval-comments-${idx}">Comments (required):</label>
+                <textarea id="inline-approval-comments-${idx}" rows="3" style="width:100%; margin-bottom:0.5rem;"></textarea>
+                <div style="display:flex; gap:1rem; margin-top:0.5rem;">
+                    <button class="btn btn-success" onclick="submitInlineApproval(${idx}, '${taskId}', '${caseItem.id}', true)"><i class='fas fa-check'></i> Approve</button>
+                    <button class="btn btn-danger" onclick="submitInlineApproval(${idx}, '${taskId}', '${caseItem.id}', false)"><i class='fas fa-times'></i> Reject</button>
+                    <button class="btn btn-secondary" onclick="hideInlineApprovalForm(${idx})">Cancel</button>
+                </div>
+            </div>
         </div>
     `}).join('');
 }
 
-function getRiskLevel(riskScore) {
-    if (!riskScore) return 'unknown';
-    if (riskScore >= 80) return 'high';
-    if (riskScore >= 50) return 'medium';
-    return 'low';
-}
-
-async function approveCase(caseId, approved) {
-    // Check if user has permission to approve cases
-    if (!hasPermission('APPROVE_CASE')) {
-        showAlert('You do not have permission to approve cases');
+window.showInlineApprovalForm = function(idx, taskId, caseId) {
+    document.getElementById(`inline-approval-form-${idx}`).style.display = 'block';
+};
+window.hideInlineApprovalForm = function(idx) {
+    document.getElementById(`inline-approval-form-${idx}`).style.display = 'none';
+};
+window.submitInlineApproval = async function(idx, taskId, caseId, approve) {
+    const comments = document.getElementById(`inline-approval-comments-${idx}`).value.trim();
+    if (!comments) {
+        showAlert('Comments are required for both approval and rejection. Please provide your comments.');
         return;
     }
-    
-    const comments = prompt(approved ? 
-        'Enter approval comments (optional):' : 
-        'Enter rejection reason (required):');
-    
-    if (!approved && (!comments || comments.trim() === '')) {
-        showAlert('Rejection reason is required');
-        return;
-    }
-    
     try {
-        const response = await apiRequest(`/cases/${caseId}/approve`, {
-            method: 'PUT',
-            body: JSON.stringify({
-                approved: approved,
-                comments: comments || '',
-                approvedBy: currentUser
-            })
-        });
-        
-        const action = approved ? 'approved' : 'rejected';
-        showSuccess(`Case ${action} successfully by ${currentUserData.name}!`);
-        
-        // Refresh approvals list
+        await handleApprovalTask(taskId, caseId, approve, comments);
+        hideInlineApprovalForm(idx);
         loadApprovals();
-        
-        // Refresh dashboard if it's visible
         if (document.getElementById('dashboard').classList.contains('active')) {
             loadDashboard();
         }
-        
-    } catch (error) {
-        console.error('Error processing approval:', error);
-        showAlert(`Error processing approval: ${error.message}`);
+    } catch (err) {
+        showAlert('Error submitting approval: ' + (err.message || err));
     }
-}
+};
 
 // Supervisor Approval Workflow
 async function handleApprovalTask(taskId, caseId, approve, comments = '') {
@@ -957,474 +917,6 @@ async function handleApprovalTask(taskId, caseId, approve, comments = '') {
             showAlert(`Error processing approval: ${error.message}`);
         }
         console.error('Error processing approval task:', error);
-    }
-}
-
-// Supervisor Approval Modal
-function showSupervisorApprovalModal(caseId, taskId) {
-    apiRequest(`/cases/${caseId}`)
-        .then(caseItem => {
-            // Only inject the approval form, not a full modal structure
-            const modalBody = document.getElementById('modal-body');
-            modalBody.innerHTML = `
-                <h3>Case Approval Review</h3>
-                <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr)); gap: 1rem; margin-bottom: 1.5rem;">
-                    <div class="case-detail"><label>Case Number</label><span>${caseItem.caseNumber}</span></div>
-                    <div class="case-detail"><label>Status</label><span class="case-status status-${caseItem.status.toLowerCase()}">${formatStatus(caseItem.status)}</span></div>
-                    <div class="case-detail"><label>Type</label><span>${caseItem.caseType || 'N/A'}</span></div>
-                    <div class="case-detail"><label>Priority</label><span>${caseItem.priority || 'N/A'}</span></div>
-                    <div class="case-detail"><label>Risk Score</label><span>${caseItem.riskScore || 'N/A'}</span></div>
-                    <div class="case-detail"><label>Entity</label><span>${caseItem.entity || 'N/A'}</span></div>
-                    <div class="case-detail"><label>Alert ID</label><span>${caseItem.alertId || 'N/A'}</span></div>
-                    <div class="case-detail"><label>Typology</label><span>${caseItem.typology || 'N/A'}</span></div>
-                    <div class="case-detail"><label>Created By</label><span>${caseItem.createdBy}</span></div>
-                    <div class="case-detail"><label>Created Date</label><span>${formatDate(caseItem.createdDate)}</span></div>
-                </div>
-                <div class="case-detail" style="margin-bottom: 1rem;">
-                    <label>Description</label>
-                    <div style="background: #f8f9fa; padding: 1rem; border-radius: 5px; margin-top: 0.5rem;">${caseItem.description || 'No description provided'}</div>
-                </div>
-                <div class="approval-comments-group">
-                    <label for="approval-comments">Comments (required):</label>
-                    <textarea id="approval-comments" rows="3" style="width:100%;"></textarea>
-                </div>
-                <div class="approval-actions-modal" style="margin-top:1.5rem; display:flex; gap:1rem;">
-                    <button class="btn btn-success" id="approve-btn"><i class='fas fa-check'></i> Approve</button>
-                    <button class="btn btn-danger" id="reject-btn"><i class='fas fa-times'></i> Reject</button>
-                    <button class="btn btn-secondary" id="cancel-btn">Cancel</button>
-                </div>
-            `;
-            document.getElementById('modal-title').textContent = `Admin Approval - ${caseItem.caseNumber}`;
-            document.getElementById('case-modal').style.display = 'flex';
-
-            // Attach event listeners
-            document.getElementById('approve-btn').onclick = function() {
-                submitSupervisorApproval(taskId, caseId, true);
-            };
-            document.getElementById('reject-btn').onclick = function() {
-                submitSupervisorApproval(taskId, caseId, false);
-            };
-            document.getElementById('cancel-btn').onclick = function() {
-                closeModal();
-            };
-        })
-        .catch(error => {
-            showAlert('Error loading case details for approval: ' + error.message);
-        });
-}
-window.showSupervisorApprovalModal = showSupervisorApprovalModal;
-
-async function submitSupervisorApproval(taskId, caseId, approve) {
-    try {
-        const comments = document.getElementById('approval-comments').value.trim();
-        if (!comments) {
-            showAlert('Comments are required for both approval and rejection. Please provide your comments.');
-            return;
-        }
-        await handleApprovalTask(taskId, caseId, approve, comments);
-        closeModal();
-    } catch (err) {
-        console.error('Error in submitSupervisorApproval:', err);
-        showAlert('Error submitting approval: ' + (err.message || err));
-    }
-}
-window.submitSupervisorApproval = submitSupervisorApproval;
-
-// Patch displayPendingApprovals to use the modal
-function displayPendingApprovals(cases) {
-    const container = document.getElementById('pending-approvals');
-    
-    if (cases.length === 0) {
-        container.innerHTML = `
-            <div class="empty-state">
-                <i class="fas fa-check-circle"></i>
-                <h3>No Pending Approvals</h3>
-                <p>All cases have been reviewed and approved.</p>
-            </div>
-        `;
-        return;
-    }
-    
-    container.innerHTML = cases.map(item => {
-        const caseItem = item.case;
-        const taskId = item.taskId;
-        const showActions = hasPermission('APPROVE_CASE') && caseItem.status === 'PENDING_CASE_CREATION_APPROVAL' && taskId;
-        return `
-        <div class="case-card approval-card">
-            <div class="case-header">
-                <div class="case-number">${caseItem.caseNumber}</div>
-                <div class="case-status status-pending-approval">Pending Approval</div>
-            </div>
-            <div class="case-details">
-                <div class="case-detail">
-                    <label>Type</label>
-                    <span>${caseItem.caseType || 'N/A'}</span>
-                </div>
-                <div class="case-detail">
-                    <label>Priority</label>
-                    <span class="priority-${caseItem.priority?.toLowerCase() || 'normal'}">${caseItem.priority || 'N/A'}</span>
-                </div>
-                <div class="case-detail">
-                    <label>Risk Score</label>
-                    <span class="risk-score-${getRiskLevel(caseItem.riskScore)}">${caseItem.riskScore || 'N/A'}</span>
-                </div>
-                <div class="case-detail">
-                    <label>Created By</label>
-                    <span>${caseItem.createdBy}</span>
-                </div>
-                <div class="case-detail">
-                    <label>Entity</label>
-                    <span>${caseItem.entity || 'N/A'}</span>
-                </div>
-                <div class="case-detail">
-                    <label>Alert ID</label>
-                    <span>${caseItem.alertId || 'N/A'}</span>
-                </div>
-            </div>
-            <div class="case-description">
-                <strong>Description:</strong>
-                <p>${caseItem.description || 'No description'}</p>
-            </div>
-            <div class="approval-actions">
-                ${showActions ? `
-                    <button class="btn btn-success btn-sm" onclick="showSupervisorApprovalModal('${caseItem.id}','${taskId}')">
-                        <i class="fas fa-check"></i> Review & Approve/Reject
-                    </button>
-                ` : `
-                    <div class="permission-notice">
-                        <i class="fas fa-info-circle"></i>
-                        You need admin privileges to approve cases
-                    </div>
-                `}
-                <button class="btn btn-info btn-sm" onclick="showCaseDetails('${caseItem.id}')">
-                    <i class="fas fa-eye"></i> View Details
-                </button>
-            </div>
-        </div>
-    `}).join('');
-}
-
-// Form Functions
-function toggleMode() {
-    const mode = document.querySelector('input[name="mode"]:checked').value;
-    currentMode = mode;
-    
-    const requiredStars = document.querySelectorAll('.required-star');
-    const submitBtn = document.getElementById('submit-btn');
-    
-    if (mode === 'complete') {
-        requiredStars.forEach(star => star.style.display = 'inline');
-        submitBtn.innerHTML = '<i class="fas fa-save"></i> Create Complete Case';
-    } else {
-        requiredStars.forEach(star => star.style.display = 'none');
-        submitBtn.innerHTML = '<i class="fas fa-save"></i> Create Draft';
-    }
-    
-    // Clear previous errors
-    clearFormErrors();
-}
-
-function validateForm() {
-    clearFormErrors();
-    
-    const formData = new FormData(document.getElementById('case-form'));
-    const errors = {};
-    
-    if (currentMode === 'complete') {
-        // Required fields for complete case (match backend requirements)
-        if (!formData.get('caseType')) {
-            errors.caseType = 'Case type is required for complete cases';
-        }
-        if (!formData.get('priority')) {
-            errors.priority = 'Priority is required for complete cases';
-        }
-        if (!formData.get('description')?.trim()) {
-            errors.description = 'Description is required for complete cases';
-        }
-        if (!formData.get('riskScore') || parseFloat(formData.get('riskScore')) <= 0) {
-            errors.riskScore = 'Risk score is required for complete cases';
-        }
-    } else {
-        // For draft, only description is required
-        if (!formData.get('description')?.trim()) {
-            errors.description = 'Description is required';
-        }
-    }
-    
-    // Validation for provided values
-    if (formData.get('caseType') && !VALID_CASE_TYPES.includes(formData.get('caseType'))) {
-        errors.caseType = 'Invalid case type';
-    }
-    if (formData.get('priority') && !VALID_PRIORITIES.includes(formData.get('priority'))) {
-        errors.priority = 'Invalid priority';
-    }
-    if (formData.get('typology') && !VALID_TYPOLOGIES.includes(formData.get('typology'))) {
-        errors.typology = 'Invalid typology';
-    }
-    
-    const riskScore = parseFloat(formData.get('riskScore'));
-    if (formData.get('riskScore') && (riskScore < 0 || riskScore > 100)) {
-        errors.riskScore = 'Risk score must be between 0 and 100';
-    }
-    
-    // Display errors
-    Object.keys(errors).forEach(field => {
-        showFieldError(field, errors[field]);
-    });
-    
-    return Object.keys(errors).length === 0;
-}
-
-function showFieldError(fieldName, message) {
-    const field = document.querySelector(`[name="${fieldName}"]`);
-    const formGroup = field.closest('.form-group');
-    const errorSpan = formGroup.querySelector('.error-message');
-    
-    formGroup.classList.add('error');
-    errorSpan.textContent = message;
-}
-
-function clearFormErrors() {
-    document.querySelectorAll('.form-group.error').forEach(group => {
-        group.classList.remove('error');
-        group.querySelector('.error-message').textContent = '';
-    });
-}
-
-async function createCase(event) {
-    event.preventDefault();
-    
-    if (!validateForm()) {
-        return;
-    }
-    
-    clearAlerts();
-    
-    const formData = new FormData(event.target);
-    const requestBody = {};
-      // Only include non-empty fields
-    for (let [key, value] of formData.entries()) {
-        if (value && value.trim()) {
-            if (key === 'riskScore') {
-                requestBody[key] = parseFloat(value);
-            } else {
-                requestBody[key] = value;
-            }
-        }
-    }
-    
-    // Add current user information (robust check)
-    if (!currentUser || !USERS[currentUser]) {
-        showAlert('Invalid or missing user. Please select a valid user before creating a case.');
-        return;
-    }
-    requestBody.createdBy = currentUser;
-    requestBody.assignee = currentUser; // Initially assign to creator
-    
-    const editingCaseId = event.target.dataset.editingCaseId;
-    
-    try {
-        let result;
-        let message;
-        
-        if (editingCaseId) {
-            // User Story 2: Complete case creation
-            result = await apiRequest(`/cases/${editingCaseId}?action=complete`, {
-                method: 'PUT',
-                body: JSON.stringify(requestBody)
-            });
-            
-            if (result.status === 'PENDING_CASE_CREATION_APPROVAL') {
-                message = `Case completion submitted for approval! Case Number: ${result.caseNumber}`;
-            } else if (result.status === 'READY_FOR_ASSIGNMENT') {
-                message = `Case completed and ready for assignment! Case Number: ${result.caseNumber}`;
-            } else {
-                message = `Case completed successfully! Case Number: ${result.caseNumber}`;
-            }
-            
-        } else {
-            // User Story 1: Create new case
-            result = await apiRequest('/cases', {
-                method: 'POST',
-                body: JSON.stringify(requestBody)
-            });
-            
-            if (result.status === 'DRAFT') {
-                message = `Draft case created successfully! Case Number: ${result.caseNumber}. You can complete it later from the Cases tab.`;
-            } else if (result.status === 'PENDING_CASE_CREATION_APPROVAL') {
-                message = `Case created and submitted for approval! Case Number: ${result.caseNumber}`;
-            } else if (result.status === 'READY_FOR_ASSIGNMENT') {
-                message = `Complete case created and workflow started! Case Number: ${result.caseNumber}`;
-            } else {
-                message = `Case created successfully! Case Number: ${result.caseNumber}`;
-            }
-        }
-        
-        showSuccess(message);
-        resetForm();
-        
-        // Refresh dashboard and cases if visible
-        if (document.getElementById('dashboard').classList.contains('active')) {
-            loadDashboard();
-        }
-        if (document.getElementById('cases').classList.contains('active')) {
-            loadCases();
-        }
-        
-    } catch (error) {
-        console.error('Error creating/completing case:', error);
-        showAlert(`Error processing case: ${error.message}`);
-    }
-}
-
-function resetForm() {
-    const form = document.getElementById('case-form');
-    form.reset();
-    form.removeAttribute('data-editing-case-id');
-    
-    clearFormErrors();
-    clearAlerts();
-    
-    // Reset mode to draft
-    document.querySelector('input[name="mode"][value="draft"]').checked = true;
-    toggleMode();
-    
-    // Reset form title
-    document.querySelector('#create-case .section-header h2').innerHTML = 
-        '<i class="fas fa-plus"></i> Create Case';
-    document.getElementById('submit-btn').innerHTML = 
-        '<i class="fas fa-save"></i> Create Draft';
-}
-
-/**
- * User Story 2: Complete case creation (edit draft case)
- */
-async function editCase(caseId) {
-    console.log('editCase called with caseId:', caseId);
-    alert('Edit case function called for case: ' + caseId); // Temporary debug
-    
-    try {
-        const caseItem = await apiRequest(`/cases/${caseId}`);
-        console.log('Case loaded:', caseItem);
-        
-        if (caseItem.status !== 'DRAFT') {
-            showAlert('Only draft cases can be edited for completion');
-            return;
-        }
-        
-        // Populate the form with existing case data
-        populateFormForEdit(caseItem);
-        
-        // Switch to create-case section
-        showSection('create-case');
-        
-        // Set mode to complete
-        const completeRadio = document.querySelector('input[name="mode"][value="complete"]');
-        if (completeRadio) {
-            completeRadio.checked = true;
-            toggleMode();
-        }
-        
-        // Update form title and button
-        const headerElement = document.querySelector('#create-case .section-header h2');
-        const submitButton = document.getElementById('submit-btn');
-        
-        if (headerElement) {
-            headerElement.innerHTML = '<i class="fas fa-edit"></i> Complete Case Creation';
-        }
-        
-        if (submitButton) {
-            submitButton.innerHTML = '<i class="fas fa-check"></i> Complete Case Creation';
-        }
-        
-        // Store case ID for completion
-        const form = document.getElementById('case-form');
-        if (form) {
-            form.dataset.editingCaseId = caseId;
-        }
-        
-        showSuccess('Draft case loaded for completion. Fill in the required details.');
-        
-    } catch (error) {
-        console.error('Error loading case for edit:', error);
-        showAlert(`Error loading case: ${error.message}`);
-    }
-}
-
-/**
- * Populate form with existing case data
- */
-function populateFormForEdit(caseItem) {
-    console.log('Populating form with case data:', caseItem);
-    
-    const form = document.getElementById('case-form');
-    if (!form) {
-        console.error('Case form not found');
-        return;
-    }
-    
-    // Populate form fields
-    const fields = {
-        'caseType': caseItem.caseType,
-        'priority': caseItem.priority,
-        'entity': caseItem.entity,
-        'alertId': caseItem.alertId,
-        'description': caseItem.description,
-        'riskScore': caseItem.riskScore,
-        'typology': caseItem.typology
-    };
-    
-    Object.entries(fields).forEach(([fieldName, value]) => {
-        const field = form.elements[fieldName];
-        if (field && value !== null && value !== undefined) {
-            field.value = value;
-            console.log(`Set ${fieldName} to:`, value);
-        }
-    });
-}
-
-// Abandon Draft Case
-async function abandonCase(caseId) {
-    try {
-        // Fetch case details to check status and owner
-        const caseItem = await apiRequest(`/cases/${caseId}`);
-        if (caseItem.status !== 'DRAFT') {
-            showAlert('Only draft cases can be abandoned.');
-            return;
-        }
-        if (caseItem.createdBy !== currentUser) {
-            showAlert('You can only abandon cases you created.');
-            return;
-        }
-        // Prompt for reason
-        let reason = prompt('Please provide a reason for abandoning this case:');
-        if (!reason || !reason.trim()) {
-            showAlert('Abandonment reason is required.');
-            return;
-        }
-        // Confirm
-        if (!confirm('Are you sure you want to abandon this draft case? This action cannot be undone.')) {
-            return;
-        }
-        // Call backend to abandon case (correct endpoint)
-        await apiRequest(`/cases/abandon/${caseId}`, {
-            method: 'PUT',
-            body: JSON.stringify({
-                abandonedBy: currentUser,
-                reason: reason.trim()
-            })
-        });
-        showSuccess('Case abandoned successfully.');
-        // Refresh cases and dashboard
-        if (document.getElementById('dashboard').classList.contains('active')) {
-            loadDashboard();
-        }
-        if (document.getElementById('cases').classList.contains('active')) {
-            loadCases();
-        }
-    } catch (error) {
-        console.error('Error abandoning case:', error);
-        showAlert(`Error abandoning case: ${error.message}`);
     }
 }
 
