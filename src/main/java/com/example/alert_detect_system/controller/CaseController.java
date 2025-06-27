@@ -56,15 +56,27 @@ public class CaseController {
      * GET /api/cases?status=DRAFT&creator=analyst&pendingApproval=true
      */
     @GetMapping
-    public ResponseEntity<List<CaseModel>> getCases(
+    public ResponseEntity<List<Map<String, Object>>> getCases(
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String creator,
             @RequestParam(required = false, defaultValue = "false") boolean pendingApproval) {
-        
         // Filter by pending approval
         if (pendingApproval) {
             List<CaseModel> pendingCases = caseService.getCasesByStatus(CaseStatus.PENDING_CASE_CREATION_APPROVAL);
-            return ResponseEntity.ok(pendingCases);
+            List<Map<String, Object>> result = new java.util.ArrayList<>();
+            for (CaseModel c : pendingCases) {
+                Map<String, Object> map = new HashMap<>();
+                map.put("case", c);
+                // Find the active approval task for this case
+                var approvalTask = taskService.getPendingApprovalTasks().stream()
+                    .filter(t -> t.getCaseId().equals(c.getId()))
+                    .findFirst().orElse(null);
+                if (approvalTask != null) {
+                    map.put("taskId", approvalTask.getId().toString());
+                }
+                result.add(map);
+            }
+            return ResponseEntity.ok(result);
         }
         
         // Filter by status
