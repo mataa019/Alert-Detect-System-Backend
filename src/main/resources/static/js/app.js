@@ -77,46 +77,45 @@ function switchUser(username) {
 
 function updateUIBasedOnRole() {
     const userRole = currentUserData.role;
-    
     // Update header to show current user
     const userInfo = document.querySelector('.user-info');
     if (userInfo) {
         userInfo.innerHTML = `
             <i class="fas fa-user"></i>
             <span>${currentUserData.name}</span>
-            <span class="role-badge role-${userRole.toLowerCase()}">${userRole}</span>
+            <span class="role-badge role-${userRole.toLowerCase()}">${userRole.toUpperCase()}</span>
         `;
     }
-    
     // Update user selector
     const userSelect = document.getElementById('user-select');
     if (userSelect) {
         userSelect.value = currentUser;
     }
-    
     // Show/hide navigation items based on role
     const approvalsNav = document.querySelector('[data-section="approvals"]');
     if (approvalsNav) {
         approvalsNav.style.display = hasPermission('APPROVE_CASE') ? 'flex' : 'none';
     }
-    
+    // Show/hide approvals section
+    const approvalsSection = document.getElementById('approvals');
+    if (approvalsSection) {
+        approvalsSection.style.display = hasPermission('APPROVE_CASE') ? '' : 'none';
+    }
+    // Privilege message
+    updatePrivilegeMessage(currentUserData);
     // Handle task assignee input visibility
     const assigneeGroup = document.getElementById('assignee-group');
     const assigneeInput = document.getElementById('assignee-input');
-    
     if (assigneeGroup && assigneeInput) {
         if (hasPermission('VIEW_ALL_CASES')) {
-            // Admins can view tasks for any user
             assigneeGroup.style.display = 'flex';
             assigneeInput.value = currentUser;
             assigneeInput.placeholder = 'Enter username to view their tasks';
         } else {
-            // Analysts can only view their own tasks
             assigneeGroup.style.display = 'none';
             assigneeInput.value = currentUser;
         }
     }
-    
     // Update button text based on role
     const loadTasksBtn = document.querySelector('[onclick="loadTasks()"]');
     if (loadTasksBtn) {
@@ -284,9 +283,11 @@ async function loadDashboard() {
 async function loadCaseStats() {
     try {
         const cases = await apiRequest('/cases');
-        let filteredCases = cases;
+        // Map to case objects for stats
+        const caseObjs = cases.map(item => item.case || item);
+        let filteredCases = caseObjs;
         if (currentUserData.role === USER_ROLES.ANALYST) {
-            filteredCases = cases.filter(c => c.createdBy === currentUser);
+            filteredCases = caseObjs.filter(c => c.createdBy === currentUser);
         }
         // Update stats
         document.getElementById('total-cases').textContent = filteredCases.length;
@@ -314,9 +315,11 @@ async function loadCaseStats() {
 async function loadRecentCases() {
     try {
         const cases = await apiRequest('/cases');
-        let filteredCases = cases;
+        // Map to case objects for display
+        const caseObjs = cases.map(item => item.case || item);
+        let filteredCases = caseObjs;
         if (currentUserData.role === USER_ROLES.ANALYST) {
-            filteredCases = cases.filter(item => item.case.createdBy === currentUser);
+            filteredCases = caseObjs.filter(c => c.createdBy === currentUser);
         }
         const recentCases = filteredCases.slice(0, 5); // Get last 5 cases for role
         const container = document.getElementById('recent-cases');
@@ -330,15 +333,15 @@ async function loadRecentCases() {
             `;
             return;
         }
-        container.innerHTML = recentCases.map(item => `
-            <div class="case-card" onclick="showCaseDetails('${item.case.id}')">
+        container.innerHTML = recentCases.map(caseItem => `
+            <div class="case-card" onclick="showCaseDetails('${caseItem.id}')">
                 <div class="case-header">
-                    <div class="case-number">${item.case.caseNumber}</div>
-                    <div class="case-status status-${item.case.status.toLowerCase()}">${formatStatus(item.case.status)}</div>
+                    <div class="case-number">${caseItem.caseNumber}</div>
+                    <div class="case-status status-${caseItem.status.toLowerCase()}">${formatStatus(caseItem.status)}</div>
                 </div>
-                <div class="case-description">${item.case.description || 'No description'}</div>
+                <div class="case-description">${caseItem.description || 'No description'}</div>
                 <div style="margin-top: 0.5rem; font-size: 0.8rem; color: #6c757d;">
-                    Created: ${formatDate(item.case.createdDate)}
+                    Created: ${formatDate(caseItem.createdDate)}
                 </div>
             </div>
         `).join('');
@@ -353,18 +356,14 @@ async function loadRecentCases() {
     }
 }
 
-async function refreshDashboard() {
-    await loadDashboard();
-    showSuccess('Dashboard refreshed successfully!');
-}
-
 // Cases Functions
 async function loadCases() {
     try {
         const cases = await apiRequest('/cases');
-        let filteredCases = cases;
+        // Map to case objects for filtering and display
+        let filteredCases = cases.map(item => item.case || item);
         if (currentUserData.role === USER_ROLES.ANALYST) {
-            filteredCases = cases.filter(c => c.createdBy === currentUser);
+            filteredCases = filteredCases.filter(c => c.createdBy === currentUser);
         }
         allCases = filteredCases;
         displayCases(filteredCases);
@@ -381,8 +380,7 @@ async function loadCases() {
 
 function displayCases(cases) {
     const container = document.getElementById('cases-container');
-    
-    if (cases.length === 0) {
+    if (!cases || cases.length === 0) {
         container.innerHTML = `
             <div class="empty-state">
                 <i class="fas fa-folder-open"></i>
@@ -392,15 +390,15 @@ function displayCases(cases) {
         `;
         return;
     }
-    
     container.innerHTML = cases.map(caseItem => {
+        if (!caseItem) return '';
         const isDraft = caseItem.status === 'DRAFT';
         const isOwner = caseItem.createdBy === currentUser;
         return `
         <div class="case-card" onclick="showCaseDetails('${caseItem.id}')">
             <div class="case-header">
                 <div class="case-number">${caseItem.caseNumber}</div>
-                <div class="case-status status-${caseItem.status.toLowerCase()}">${formatStatus(caseItem.status)}</div>
+                <div class="case-status status-${(caseItem.status||'').toLowerCase()}">${formatStatus(caseItem.status||'')}</div>
             </div>
             <div class="case-details">
                 <div class="case-detail">
@@ -438,13 +436,10 @@ function displayCases(cases) {
 
 function filterCases() {
     const statusFilter = document.getElementById('status-filter').value;
-    
     let filteredCases = allCases;
-    
     if (statusFilter) {
-        filteredCases = filteredCases.filter(c => c.status === statusFilter);
+        filteredCases = filteredCases.filter(caseItem => caseItem.status === statusFilter);
     }
-    
     displayCases(filteredCases);
 }
 
@@ -1419,7 +1414,7 @@ async function abandonCase(caseId) {
 function updatePrivilegeMessage(user) {
     const msg = document.getElementById('supervisor-approval-message');
     if (!msg) return;
-    if (user && user.role !== 'admin') {
+    if (user && user.role !== 'admin' && user.role !== 'ADMIN') {
         msg.style.display = 'flex';
     } else {
         msg.style.display = 'none';
