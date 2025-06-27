@@ -60,45 +60,35 @@ public class CaseController {
             @RequestParam(required = false) String status,
             @RequestParam(required = false) String creator,
             @RequestParam(required = false, defaultValue = "false") boolean pendingApproval) {
-        // Filter by pending approval
+        List<CaseModel> cases;
         if (pendingApproval) {
-            List<CaseModel> pendingCases = caseService.getCasesByStatus(CaseStatus.PENDING_CASE_CREATION_APPROVAL);
-            List<Map<String, Object>> result = new java.util.ArrayList<>();
-            for (CaseModel c : pendingCases) {
-                Map<String, Object> map = new HashMap<>();
-                map.put("case", c);
-                // Find the active approval task for this case
-                var approvalTask = taskService.getPendingApprovalTasks().stream()
-                    .filter(t -> t.getCaseId().equals(c.getId()))
-                    .findFirst().orElse(null);
-                if (approvalTask != null) {
-                    map.put("taskId", approvalTask.getId().toString());
-                }
-                result.add(map);
-            }
-            return ResponseEntity.ok(result);
-        }
-        
-        // Filter by status
-        if (status != null) {
+            cases = caseService.getCasesByStatus(CaseStatus.PENDING_CASE_CREATION_APPROVAL);
+        } else if (status != null) {
             try {
                 CaseStatus caseStatus = CaseStatus.valueOf(status.toUpperCase());
-                List<CaseModel> cases = caseService.getCasesByStatus(caseStatus);
-                return ResponseEntity.ok(cases);
+                cases = caseService.getCasesByStatus(caseStatus);
             } catch (IllegalArgumentException e) {
                 return ResponseEntity.badRequest().build();
             }
+        } else if (creator != null) {
+            cases = caseService.getCasesByCreatedBy(creator);
+        } else {
+            cases = caseService.getAllCases();
         }
-        
-        // Filter by creator
-        if (creator != null) {
-            List<CaseModel> cases = caseService.getCasesByCreatedBy(creator);
-            return ResponseEntity.ok(cases);
+        List<Map<String, Object>> result = new java.util.ArrayList<>();
+        for (CaseModel c : cases) {
+            Map<String, Object> map = new HashMap<>();
+            map.put("case", c);
+            // Find the active approval task for this case
+            var approvalTask = taskService.getPendingApprovalTasks().stream()
+                .filter(t -> t.getCaseId().equals(c.getId()))
+                .findFirst().orElse(null);
+            if (approvalTask != null) {
+                map.put("taskId", approvalTask.getId().toString());
+            }
+            result.add(map);
         }
-        
-        // Default: return all cases
-        List<CaseModel> allCases = caseService.getAllCases();
-        return ResponseEntity.ok(allCases);
+        return ResponseEntity.ok(result);
     }
     
     /**

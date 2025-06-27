@@ -785,8 +785,10 @@ function displayPendingApprovals(cases) {
         return;
     }
     
-    container.innerHTML = cases.map(caseItem => {
-        const showActions = hasPermission('APPROVE_CASE') && caseItem.status === 'PENDING_CASE_CREATION_APPROVAL' && caseItem.taskId;
+    container.innerHTML = cases.map(item => {
+        const caseItem = item.case;
+        const taskId = item.taskId;
+        const showActions = hasPermission('APPROVE_CASE') && caseItem.status === 'PENDING_CASE_CREATION_APPROVAL' && taskId;
         return `
         <div class="case-card approval-card">
             <div class="case-header">
@@ -825,7 +827,7 @@ function displayPendingApprovals(cases) {
             </div>
             <div class="approval-actions">
                 ${showActions ? `
-                    <button class="btn btn-success btn-sm" onclick="showSupervisorApprovalModal('${caseItem.id}','${caseItem.taskId}')">
+                    <button class="btn btn-success btn-sm" onclick="showSupervisorApprovalModal('${caseItem.id}','${taskId}')">
                         <i class="fas fa-check"></i> Review & Approve/Reject
                     </button>
                 ` : `
@@ -901,7 +903,7 @@ async function handleApprovalTask(taskId, caseId, approve, comments = '') {
             apiRequest(`/tasks/${taskId}`)
         ]);
         // Check case status
-        if (caseItem.status !== 'PENDING_CASE_CREATION_APPROVAL') {
+        if (caseItem.status !== 'PENDING_CASE_CREATION') {
             showAlert('Case is not pending approval. Approval/rejection not allowed.');
             return;
         }
@@ -1030,8 +1032,10 @@ function displayPendingApprovals(cases) {
         return;
     }
     
-    container.innerHTML = cases.map(caseItem => {
-        const showActions = hasPermission('APPROVE_CASE') && caseItem.status === 'PENDING_CASE_CREATION_APPROVAL' && caseItem.taskId;
+    container.innerHTML = cases.map(item => {
+        const caseItem = item.case;
+        const taskId = item.taskId;
+        const showActions = hasPermission('APPROVE_CASE') && caseItem.status === 'PENDING_CASE_CREATION_APPROVAL' && taskId;
         return `
         <div class="case-card approval-card">
             <div class="case-header">
@@ -1070,7 +1074,7 @@ function displayPendingApprovals(cases) {
             </div>
             <div class="approval-actions">
                 ${showActions ? `
-                    <button class="btn btn-success btn-sm" onclick="showSupervisorApprovalModal('${caseItem.id}','${caseItem.taskId}')">
+                    <button class="btn btn-success btn-sm" onclick="showSupervisorApprovalModal('${caseItem.id}','${taskId}')">
                         <i class="fas fa-check"></i> Review & Approve/Reject
                     </button>
                 ` : `
